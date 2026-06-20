@@ -11,5 +11,6 @@ path = "src/main.rs"
 
 [dependencies]
 aegis-kernel = { path = "../../core/kernel" }
+aegis-connectors = { path = "../../core/connectors" }
 # std-only arg handling in v0.1 to guarantee an offline build; clap lands when
 # the crate registry is reachable in CI.

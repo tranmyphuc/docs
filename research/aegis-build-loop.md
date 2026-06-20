@@ -25,18 +25,18 @@
 - [x] **L1.4** `Makefile` targets: `build`, `test`, `demo`, `up`, `down`. **Verify:** `make -n demo`
 
 ## L2 — Connectors (offline fixtures)  *(real data shape, no creds)*
-- [ ] **L2.1** M365 idle-license connector: parse a fixture `getOffice365ActiveUserDetail` CSV → idle E5 list (`lastSignInDateTime` + `lastNonInteractiveSignInDateTime`). **Verify:** unit test asserts N idle seats from fixture.
-- [ ] **L2.2** Prowler→ISO 27001:2022 mapper: fixture findings JSON → Annex A control IDs. **Verify:** test maps a finding to `A.5.7`/`A.8.x`.
+- [x] **L2.1** M365 idle-license connector: parse a fixture `getOffice365ActiveUserDetail` CSV → idle E5 list (`lastSignInDateTime` + `lastNonInteractiveSignInDateTime`). **Verify:** unit test asserts N idle seats from fixture.
+- [x] **L2.2** Prowler→ISO 27001:2022 mapper: fixture findings JSON → Annex A control IDs. **Verify:** test maps a finding to `A.5.7`/`A.8.x`.
 - [ ] **L2.3** Connector trait + gRPC/PyO3 boundary so Python tools feed the Rust core. **Verify:** round-trip test.
 
 ## L3 — Agents  *(the two viewpoints)*
-- [ ] **L3.1** Compliance Agent → emits **obligations** (control id, severity mandatory/soft, affected resource). **Verify:** test emits ≥1 mandatory obligation from L2.2 output.
-- [ ] **L3.2** FinOps Agent → emits **proposals** (action, $ delta, affected resource) from L2.1 output. **Verify:** test emits a reclaim proposal with $ value.
+- [x] **L3.1** Compliance Agent → emits **obligations** (control id, severity mandatory/soft, affected resource). **Verify:** test emits ≥1 mandatory obligation from L2.2 output.
+- [x] **L3.2** FinOps Agent → emits **proposals** (action, $ delta, affected resource) from L2.1 output. **Verify:** test emits a reclaim proposal with $ value.
 
 ## L4 — Arbitration Kernel  *(THE differentiator)*
 - [x] **L4.1** CMOP model: obligations-as-constraints, cost+coverage objectives; return **Pareto front**. **Verify:** test returns ≥2 non-dominated options.
 - [x] **L4.2** OPA/Rego veto gate (`policy/arbitrate.rego`): mandatory severity → hard veto. **Verify:** test shows a reclaim vetoed by an audit-retention obligation.
-- [ ] **L4.3** Weighted-scalar fallback flag (de-risks L4.1 slip). **Verify:** `aegis arbitrate --strategy weighted` runs.
+- [x] **L4.3** Weighted-scalar fallback flag (de-risks L4.1 slip). **Verify:** `aegis arbitrate --strategy weighted` runs.
 
 ## L5 — Human-in-the-Loop + Durability
 - [ ] **L5.1** HITL interrupt on high-blast-radius actions; snapshot + resume. **Verify:** test pauses then resumes on approve.
@@ -69,6 +69,6 @@
 ---
 
 ### Progress
-`13 / 28` tasks complete (foundational drop: L0, L1, kernel arbitration L4.1/L4.2, simulate demo L7.1, example L9.2, launch kit L10). Remaining: live connectors (L2), agent wiring (L3), HITL+Temporal (L5), evidence bundles (L6), demo GIF (L7.2), CI badges (L8), docs site (L9.1), community polish (L11).
+`18 / 28` tasks complete (foundational drop: L0, L1, kernel arbitration L4.1/L4.2, simulate demo L7.1, example L9.2, launch kit L10). Remaining: live connectors (L2), agent wiring (L3), HITL+Temporal (L5), evidence bundles (L6), demo GIF (L7.2), CI badges (L8), docs site (L9.1), community polish (L11).
 
 > **Build location note:** built under `aegis/` in `tranmyphuc/docs` because this session is scoped to that repo and a standalone `tranmyphuc/aegis` could not be created (403). Migrate the `aegis/` tree to the standalone private repo before launch (see `aegis/LAUNCH.md`).

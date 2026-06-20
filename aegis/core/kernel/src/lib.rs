@@ -118,6 +118,35 @@ pub fn arbitrate(proposals: &[Proposal], obligations: &[Obligation]) -> Arbitrat
     }
 }
 
+/// Weighted-scalar fallback (L4.3): collapse the two objectives into one score
+/// `w_savings * savings - w_coverage_penalty * coverage_loss` and return the
+/// single best feasible plan. De-risks the exponential Pareto enumeration for
+/// large proposal sets and gives operators a tunable single-answer mode.
+pub fn arbitrate_weighted(
+    proposals: &[Proposal],
+    obligations: &[Obligation],
+    w_savings: f64,
+    w_coverage_penalty: f64,
+) -> Plan {
+    // Greedy: include every feasible proposal whose weighted marginal score is
+    // positive. Linear in the number of proposals (no subset enumeration).
+    let mut plan = Plan::empty();
+    for p in proposals {
+        if is_vetoed(p, obligations).is_some() {
+            continue;
+        }
+        let penalty = if p.reduces_control_coverage {
+            w_coverage_penalty
+        } else {
+            0.0
+        };
+        if w_savings * p.monthly_savings_usd - penalty > 0.0 {
+            plan.apply(p);
+        }
+    }
+    plan
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -173,5 +202,14 @@ mod tests {
         let result = arbitrate(&p, &[]);
         assert!((result.recommended.monthly_savings_usd - 11_400.0).abs() < 1e-6);
         assert_eq!(result.savings_forfeited_usd, 0.0);
+    }
+
+    #[test]
+    fn weighted_fallback_matches_pareto_recommendation() {
+        let (p, o) = scenario();
+        let plan = arbitrate_weighted(&p, &o, 1.0, 0.0);
+        // Vetoed proposal is excluded; only the safe general reclaim remains.
+        assert!((plan.monthly_savings_usd - 9_120.0).abs() < 1e-6);
+        assert_eq!(plan.coverage_loss, 0);
     }
 }

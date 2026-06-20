@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["core/kernel", "core/sandbox", "cli/aegis"]
+members = ["core/kernel", "core/sandbox", "core/connectors", "cli/aegis"]
 
 [workspace.package]
 version = "0.1.0"

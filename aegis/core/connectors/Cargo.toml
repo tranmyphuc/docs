@@ -1,0 +1,15 @@
+[package]
+name = "aegis-connectors"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AEGIS connectors + agents: M365/Prowler fixtures → obligations & proposals."
+
+[lib]
+name = "aegis_connectors"
+path = "src/lib.rs"
+
+[dependencies]
+aegis-kernel = { path = "../kernel" }
+# Dependency-free in v0.1: fixtures are CSV so the build stays offline. Real
+# Microsoft Graph JSON / Prowler OCSF parsing arrives with serde on live CI.
