@@ -1,0 +1,12 @@
+[package]
+name = "aegis-sandbox"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AEGIS deny-by-default tool sandbox (WASM/Wasmtime + microVM tiers). Trait surface in v0.1."
+
+[lib]
+name = "aegis_sandbox"
+path = "src/lib.rs"
+
+[dependencies]

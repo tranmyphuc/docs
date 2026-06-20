@@ -1,0 +1,3 @@
+status,check_id,resource
+FAIL,m365_audit_log_retention_enabled,m365:e5:regulated
+PASS,iam_root_mfa_enabled,aws:account:root

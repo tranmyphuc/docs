@@ -1,0 +1,14 @@
+[package]
+name = "aegis-kernel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AEGIS arbitration kernel: Pareto conflict-resolution between compliance obligations and FinOps proposals."
+
+[lib]
+name = "aegis_kernel"
+path = "src/lib.rs"
+
+# Intentionally zero external dependencies: the kernel is pure logic and must
+# build/test fully offline. Connectors and runtime deps live in higher crates.
+[dependencies]
