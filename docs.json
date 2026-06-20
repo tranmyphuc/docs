@@ -46,7 +46,8 @@
               "odoo-ai-agent/docker-networking",
               "odoo-ai-agent/claude-md",
               "odoo-ai-agent/auto-debugging",
-              "odoo-ai-agent/connector-blueprint"
+              "odoo-ai-agent/connector-blueprint",
+              "odoo-ai-agent/market-strategy"
             ]
           }
         ]
