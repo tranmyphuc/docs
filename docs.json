@@ -45,7 +45,8 @@
               "odoo-ai-agent/mcp-server",
               "odoo-ai-agent/docker-networking",
               "odoo-ai-agent/claude-md",
-              "odoo-ai-agent/auto-debugging"
+              "odoo-ai-agent/auto-debugging",
+              "odoo-ai-agent/connector-blueprint"
             ]
           }
         ]
