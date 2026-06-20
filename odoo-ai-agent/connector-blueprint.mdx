@@ -168,6 +168,8 @@ class AIRequestLog(models.Model):
 ```python
 # models/ai_engine.py
 import hashlib
+import hmac
+import json
 import time
 import requests
 from odoo import api, models
@@ -265,7 +267,11 @@ class AIEngine(models.AbstractModel):
             raise UserError("Bạn đã đạt giới hạn %s lượt AI/ngày." % limit)
 
     def _log(self, prov, status, source, usage, dur, messages, error=None):
-        digest = hashlib.sha256(str(messages).encode()).hexdigest()
+        # Fingerprint có khoá (HMAC) + JSON chuẩn hoá: audit được mà không lộ pattern prompt.
+        payload = json.dumps(messages, sort_keys=True, ensure_ascii=False).encode()
+        secret = (self.env["ir.config_parameter"].sudo()
+                  .get_param("ai_bridge.audit_hmac_secret", "")).encode()
+        digest = hmac.new(secret, payload, hashlib.sha256).hexdigest() if secret else None
         self.env["ai.request.log"].sudo().create({
             "provider_id": prov.id, "model": prov.model, "status": status,
             "source": source, "input_tokens": usage.get("in", 0),
@@ -301,21 +307,28 @@ việc khách viết automation dựa trên nó tạo nên switching-cost. Hãy 
         return text, {"in": u.get("prompt_tokens", 0), "out": u.get("completion_tokens", 0)}
 
     def _dispatch_gemini(self, prov, messages):
-        # Gemini dùng 'contents' + role 'user'/'model' (không có 'assistant'/'system')
-        contents = []
+        # Gemini không có role 'system' trong 'contents': system phải tách ra
+        # field 'system_instruction' ở cấp cao nhất, nếu không sẽ bị bỏ qua âm thầm.
+        contents, system_parts = [], []
         for m in messages:
+            if m["role"] == "system":
+                system_parts.append(m["content"])
+                continue
             role = "model" if m["role"] == "assistant" else "user"
             contents.append({"role": role, "parts": [{"text": m["content"]}]})
-        base = prov.base_url or "https://generativelanguage.googleapis.com"
-        url = "%s/v1beta/models/%s:generateContent?key=%s" % (
-            base, prov.model, prov.api_key or "")
-        r = requests.post(url, timeout=60, json={
+        body = {
             "contents": contents,
             "generationConfig": {
                 "maxOutputTokens": prov.max_tokens,
                 "temperature": prov.temperature,
             },
-        })
+        }
+        if system_parts:
+            body["system_instruction"] = {"parts": [{"text": "\n".join(system_parts)}]}
+        base = prov.base_url or "https://generativelanguage.googleapis.com"
+        url = "%s/v1beta/models/%s:generateContent?key=%s" % (
+            base, prov.model, prov.api_key or "")
+        r = requests.post(url, timeout=60, json=body)
         r.raise_for_status()
         data = r.json()
         text = data["candidates"][0]["content"]["parts"][0]["text"]
@@ -422,12 +435,21 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_llm_provider_user,llm.provider.user,model_llm_provider,ai_bridge.group_ai_user,1,0,0,0
 access_llm_provider_manager,llm.provider.manager,model_llm_provider,ai_bridge.group_ai_manager,1,1,1,1
 access_ai_request_log_user,ai.request.log.user,model_ai_request_log,ai_bridge.group_ai_user,1,0,0,0
-access_ai_request_log_manager,ai.request.log.manager,model_ai_request_log,ai_bridge.group_ai_manager,1,1,1,1
+access_ai_request_log_manager,ai.request.log.manager,model_ai_request_log,ai_bridge.group_ai_manager,1,0,0,0
 ```
 
+- **Audit log append-only**: cả User lẫn Manager đều `perm_write=0, perm_unlink=0` → không ai
+  sửa/xoá được log qua ORC; bản ghi do `_log` tạo bằng `sudo().create()` (bỏ qua ACL). Đây là
+  điều kiện để audit có giá trị compliance — đừng cấp write/unlink cho bất kỳ group nào.
 - `api_key` đặt `groups="ai_bridge.group_ai_manager"` → user thường không đọc được key.
 - Rate-limit theo user/ngày (đã có trong `_check_rate_limit`).
-- Audit log bất biến với user thường (chỉ read) → đáp ứng yêu cầu governance.
+
+<Warning>
+**Bảo mật key chưa hoàn chỉnh ở MVP:** `api_key` dùng `fields.Char` + `password="True"` chỉ **che
+ở UI**, vẫn lưu **plaintext trong DB**. Cho sản phẩm trả phí, trước khi production hãy: (a) mã hoá
+at-rest (custom encrypted field / extension theo phiên bản Odoo), hoặc (b) vault-backed — chỉ lưu
+tham chiếu, key thật nằm ở secrets manager ngoài. Áp dụng cho **mọi** credential provider.
+</Warning>
 
 ## 8. Chiến lược đa phiên bản (v16 → v19)
 

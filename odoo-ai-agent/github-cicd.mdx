@@ -153,10 +153,14 @@ jobs:
     # Chỉ chạy khi gắn đúng label, tránh trigger nhầm
     if: github.event.label.name == 'ai-build'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        odoo: ["18.0"]          # thêm "14.0","16.0","17.0","19.0" để build đa phiên bản
     services:
       # Odoo tạm cho CI để MCP khảo sát schema thật của đúng phiên bản
       odoo:
-        image: odoo:18.0
+        image: odoo:${{ matrix.odoo }}   # bám theo matrix → độc lập phiên bản
         env:
           HOST: postgres
           USER: odoo

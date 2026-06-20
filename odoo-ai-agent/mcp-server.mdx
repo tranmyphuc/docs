@@ -289,9 +289,9 @@ if __name__ == "__main__":
       "args": ["-m", "odoo_mcp.server"],
       "env": {
         "ODOO_URL": "http://host.docker.internal:8069",
-        "ODOO_DB": "ci",
-        "ODOO_USER": "admin",
-        "ODOO_PASSWORD": "admin"
+        "ODOO_DB": "${ODOO_DB}",
+        "ODOO_USER": "${ODOO_USER}",
+        "ODOO_PASSWORD": "${ODOO_PASSWORD}"
       }
     }
   }

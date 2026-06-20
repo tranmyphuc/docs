@@ -115,7 +115,7 @@ hook chặn ghi file `.py`/`.xml` nếu trong phiên chưa từng gọi MCP intr
 
 ```python
 #!/usr/bin/env python3
-import json, sys, pathlib
+import json, sys, pathlib, time
 
 data = json.load(sys.stdin)
 path = data.get("tool_input", {}).get("file_path", "")
@@ -124,9 +124,12 @@ path = data.get("tool_input", {}).get("file_path", "")
 if not path.endswith((".py", ".xml")):
     sys.exit(0)
 
-# Marker do Agent/MCP wrapper ghi ra sau khi gọi get_model_fields trong phiên này
+# Marker do Agent/MCP wrapper ghi ra sau khi gọi get_model_fields trong phiên này.
+# CHỈ chấp nhận marker còn "tươi" để marker cũ của phiên trước không bypass được.
+MAX_AGE_SECONDS = 30 * 60
 marker = pathlib.Path(".claude/.schema_checked")
-if not marker.exists():
+is_fresh = marker.exists() and (time.time() - marker.stat().st_mtime) <= MAX_AGE_SECONDS
+if not is_fresh:
     print(
         "CHẶN: Chưa khảo sát schema qua MCP trong phiên này. "
         "Hãy gọi inspect_odoo_version + get_model_fields trước khi viết .py/.xml.",

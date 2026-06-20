@@ -122,8 +122,13 @@ rồi push lại lên nhánh PR.
         continue-on-error: true
         run: |
           docker compose up -d
-          docker exec odoo odoo -d ci -i my_custom_module --stop-after-init \
-            || bash .claude/scripts/capture_odoo_error.sh
+          set +e
+          docker exec odoo odoo -d ci -i my_custom_module --stop-after-init
+          status=$?
+          if [ $status -ne 0 ]; then
+            bash .claude/scripts/capture_odoo_error.sh
+            exit $status      # giữ exit code gốc → steps.install.outcome = 'failure'
+          fi
 
       - name: Claude headless auto-fix
         if: steps.install.outcome == 'failure'
