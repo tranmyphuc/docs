@@ -1,0 +1,77 @@
+---
+title: "Arbitration"
+description: "The constrained multi-objective model at the heart of AEGIS: obligations as vetoes, cost and coverage as objectives, the Pareto frontier as the answer."
+---
+
+Security tools and cost tools answer the *same* question — "what is the right state for
+this resource?" — and disagree. Nobody arbitrates. AEGIS makes that arbitration the
+product.
+
+## The model: a constrained multi-objective problem (CMOP)
+
+The kernel takes two inputs:
+
+- **Proposals** (from the FinOps agent): each has an `id`, a `resource`, a
+  `monthly_savings_usd`, and a flag for whether applying it `reduces_control_coverage`.
+- **Obligations** (from the Compliance agent): each binds a `resource` with a `control_id`
+  and a `severity` — `Mandatory` or `Soft`.
+
+It optimizes two objectives at once:
+
+| Objective | Direction |
+|---|---|
+| Monthly savings | maximize ↑ |
+| Coverage loss (proposals that erode control coverage) | minimize ↓ |
+
+## The veto gate (hard constraint)
+
+A **mandatory** obligation is a hard veto. A proposal is infeasible if it reduces control
+coverage of a resource bound by a mandatory obligation:
+
+```text
+veto(proposal) ⇔ proposal.reduces_control_coverage
+                 ∧ ∃ obligation. obligation.severity = Mandatory
+                                ∧ obligation.resource = proposal.resource
+```
+
+This is enforced identically in two places that must agree: the Rust kernel
+([`is_vetoed`](https://github.com/tranmyphuc/aegis/blob/main/core/kernel/src/lib.rs)) and the
+OPA/Rego policy ([`policy/arbitrate.rego`](https://github.com/tranmyphuc/aegis/blob/main/policy/arbitrate.rego)).
+
+## The Pareto frontier (the answer)
+
+Vetoed proposals are removed, then the kernel enumerates feasible subsets and keeps only
+the **non-dominated** plans. A plan `a` *dominates* `b` when it is at least as good on
+every objective and strictly better on at least one:
+
+```text
+dominates(a, b) ⇔ a.savings ≥ b.savings ∧ a.coverage_loss ≤ b.coverage_loss
+                 ∧ (a.savings > b.savings ∨ a.coverage_loss < b.coverage_loss)
+```
+
+The result includes:
+
+- the **frontier** of feasible, non-dominated plans (best-savings first);
+- the **recommended** plan (highest feasible savings);
+- the **veto rationale** — *why* the cheaper plan lost;
+- the **savings forfeited** to honor mandatory obligations.
+
+<Note>
+Subset enumeration is exponential, so it's capped at 20 proposals. Beyond that, use the
+**weighted-scalar fallback** (`arbitrate --strategy weighted`), which collapses the two
+objectives into one tunable score and runs in linear time.
+</Note>
+
+## Worked example
+
+200 idle E5 seats: 160 in a general cohort, 40 in a regulated cohort that A.8.15 requires
+to retain E5-tier audit logging.
+
+| Proposal | Savings | Erodes coverage? | Outcome |
+|---|---|---|---|
+| `reclaim-e5-general` | $9,120/mo | no | ✅ applied |
+| `reclaim-e5-regulated` | $2,280/mo | yes | ✗ vetoed by **A.8.15** |
+
+The recommendation reclaims the general cohort for $9,120/mo and forfeits $2,280/mo to keep
+the regulated cohort compliant — and it says so explicitly. Run it yourself in the
+[Quickstart](/aegis-platform/quickstart).

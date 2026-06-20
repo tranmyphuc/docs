@@ -1,0 +1,84 @@
+---
+title: "Architecture"
+description: "How AEGIS turns raw posture and usage data into one arbitrated, auditable decision."
+---
+
+AEGIS is a governed, sandbox-first multi-agent framework. Two agents observe the same
+estate from opposite viewpoints — **compliance** and **cost** — and a single
+**arbitration kernel** resolves the conflict between them. Every decision is written to a
+tamper-evident evidence log.
+
+## The pipeline
+
+```mermaid
+flowchart LR
+    subgraph Connectors["Connectors (offline fixtures in v0.1)"]
+        M365["M365 usage report\n(getOffice365ActiveUserDetail)"]
+        PROW["Prowler findings\n(OCSF / CSV)"]
+    end
+
+    M365 --> FIN["FinOps / Asset Agent\nidle-seat detection → proposals ($)"]
+    PROW --> COMP["Compliance / Audit Agent\nfindings → ISO 27001 obligations"]
+
+    FIN -->|proposals| KERNEL
+    COMP -->|obligations\n(vetoes + objectives)| KERNEL
+
+    KERNEL["ARBITRATION KERNEL\nPareto frontier + mandatory-obligation veto"]
+    KERNEL --> PLAN["Recommended plan\n+ binding-constraint rationale"]
+    KERNEL --> EVID["Hash-chained evidence log\n(OTel-GenAI span shape)"]
+
+    PLAN -.executed under.-> SANDBOX["Deny-by-default sandbox\n(capability grants per tool call)"]
+```
+
+## Components
+
+<AccordionGroup>
+  <Accordion title="Connectors — real data shape, no credentials">
+    Connectors parse posture and usage data into the kernel's currency. v0.1 reads CSV
+    fixtures whose shapes mirror **Microsoft Graph** (`getOffice365ActiveUserDetail`) and
+    **Prowler** findings, so everything builds and tests offline. The
+    [M365 connector](https://github.com/tranmyphuc/aegis/blob/main/core/connectors/src/m365.rs)
+    flags a seat idle only when *both* `lastSignInDateTime` and
+    `lastNonInteractiveSignInDateTime` are stale — relying on interactive sign-ins alone
+    misclassifies users.
+  </Accordion>
+  <Accordion title="Compliance / Audit Agent — obligations">
+    Maps each failing scanner finding to an ISO 27001:2022 Annex A control and emits a
+    **mandatory obligation** binding that resource (e.g. `m365_audit_log_retention_enabled`
+    → `A.8.15`). Mandatory obligations become hard vetoes in the kernel.
+  </Accordion>
+  <Accordion title="FinOps / Asset Agent — proposals">
+    Groups idle seats by `(tier, cohort)` and emits priced **reclaim proposals**. A proposal
+    that touches a regulated cohort is flagged as eroding control coverage — the signal the
+    kernel arbitrates against.
+  </Accordion>
+  <Accordion title="Arbitration Kernel — the differentiator">
+    Models the tension as a constrained multi-objective problem and returns the **Pareto
+    frontier** plus the binding constraint that vetoed the cheapest plan. See
+    [Arbitration](/aegis-platform/concepts/arbitration).
+  </Accordion>
+  <Accordion title="Sandbox — deny-by-default">
+    Every tool invocation must declare exactly the capabilities (read/write paths, net
+    egress, env vars) it needs; absence means denied. This closes the "silent fallback to an
+    unsandboxed interpreter" CVE class. WASM/Wasmtime and microVM backends land in v0.2.
+  </Accordion>
+  <Accordion title="Evidence log — the enterprise hook">
+    Each decision is appended as a hash-chained entry shaped after the OpenTelemetry GenAI
+    semantic conventions (`invoke_agent` / `execute_tool`). Altering, reordering, or deleting
+    any past record breaks every downstream hash — so an auditor can prove the log is intact.
+  </Accordion>
+</AccordionGroup>
+
+## Design principles
+
+- **Conflict is the product.** Existing tools either enforce security *or* report cost
+  waste. AEGIS arbitrates the two as one decision.
+- **Offline-first core.** The v0.1 kernel, connectors, and evidence log have zero external
+  dependencies and run entirely against fixtures.
+- **Auditable by construction.** Every autonomous action lands in a cryptographically
+  verifiable log mapped to the controls it affects.
+
+## Tech stack
+
+Rust core (Tokio + Rig) · Python tools via PyO3/gRPC · Wasmtime + Firecracker sandbox ·
+Qdrant/pgvector memory · NATS + Temporal · OPA/Rego policy · MCP + A2A + OpenTelemetry.
