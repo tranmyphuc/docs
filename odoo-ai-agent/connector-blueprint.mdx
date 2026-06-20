@@ -235,7 +235,7 @@ class AIEngine(models.AbstractModel):
         data = r.json()
         return data["message"]["content"], {"in": 0, "out": 0}
 
-    # _dispatch_openai / _dispatch_gemini: cùng khuôn, đổi URL + header + parse.
+    # _dispatch_openai / _dispatch_gemini: xem mục 5.4.
 
     def _dispatch_iap(self, prov, messages):       # managed credits (mục 6.2)
         account = self.env["iap.account"].get(IAP_SERVICE_NAME)
@@ -279,6 +279,108 @@ class AIEngine(models.AbstractModel):
 việc khách viết automation dựa trên nó tạo nên switching-cost. Hãy tài liệu hoá nó như một
 "public service" của module.
 </Tip>
+
+### 5.4 Adapter OpenAI & Gemini (đầy đủ)
+
+```python
+# Tiếp models/ai_engine.py
+
+    def _dispatch_openai(self, prov, messages):
+        url = (prov.base_url or "https://api.openai.com") + "/v1/chat/completions"
+        r = requests.post(url, timeout=60, headers={
+            "Authorization": "Bearer %s" % (prov.api_key or ""),
+            "Content-Type": "application/json",
+        }, json={
+            "model": prov.model, "messages": messages,
+            "max_tokens": prov.max_tokens, "temperature": prov.temperature,
+        })
+        r.raise_for_status()
+        data = r.json()
+        text = data["choices"][0]["message"]["content"]
+        u = data.get("usage", {})
+        return text, {"in": u.get("prompt_tokens", 0), "out": u.get("completion_tokens", 0)}
+
+    def _dispatch_gemini(self, prov, messages):
+        # Gemini dùng 'contents' + role 'user'/'model' (không có 'assistant'/'system')
+        contents = []
+        for m in messages:
+            role = "model" if m["role"] == "assistant" else "user"
+            contents.append({"role": role, "parts": [{"text": m["content"]}]})
+        base = prov.base_url or "https://generativelanguage.googleapis.com"
+        url = "%s/v1beta/models/%s:generateContent?key=%s" % (
+            base, prov.model, prov.api_key or "")
+        r = requests.post(url, timeout=60, json={
+            "contents": contents,
+            "generationConfig": {
+                "maxOutputTokens": prov.max_tokens,
+                "temperature": prov.temperature,
+            },
+        })
+        r.raise_for_status()
+        data = r.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        u = data.get("usageMetadata", {})
+        return text, {"in": u.get("promptTokenCount", 0),
+                      "out": u.get("candidatesTokenCount", 0)}
+```
+
+<Tip>
+Cả 4 adapter trả về cùng tuple `(text, usage)` nên `ai.engine.chat` không cần biết provider nào
+— đó chính là lớp **provider abstraction** tạo độ dính. Thêm provider mới (Mistral, DeepSeek,
+OpenRouter) = thêm một `_dispatch_<type>` và một dòng selection, không đụng phần còn lại.
+</Tip>
+
+### 5.5 Ví dụ end-to-end: gắn AI vào quy trình
+
+**Cách A — Server Action (admin tạo, không cần module mới):** dán code vào một
+`ir.actions.server` (state = code), chạy được trên bất kỳ model có trường text:
+
+```xml
+<!-- data/ai_bridge_demo_action.xml -->
+<odoo>
+  <record id="action_ai_summarize" model="ir.actions.server">
+    <field name="name">AI: Tóm tắt bản ghi</field>
+    <field name="model_id" ref="base.model_res_partner"/>  <!-- ví dụ res.partner -->
+    <field name="binding_model_id" ref="base.model_res_partner"/>  <!-- hiện trong menu Action -->
+    <field name="state">code</field>
+    <field name="code">
+prompt = "Tóm tắt liên hệ này bằng 3 gạch đầu dòng:\n%s" % (record.comment or record.name)
+text = env["ai.engine"].chat(
+    [{"role": "user", "content": prompt}], source="server_action")
+record.message_post(body=text)
+    </field>
+  </record>
+</odoo>
+```
+
+Trong context của server action có sẵn `env`, `record`/`records`, `model` — gọi thẳng
+`env["ai.engine"].chat(...)`. Khách tự tạo các action như vậy gắn vào workflow → switching-cost.
+
+**Cách B — Companion module (khi cần nút cố định trên một app):** tách thành module phụ
+`ai_bridge_crm` (`depends = ['ai_bridge', 'crm']`) để **không** ép module lõi phụ thuộc `crm`:
+
+```python
+# ai_bridge_crm/models/crm_lead.py
+from odoo import models
+
+class CrmLead(models.Model):
+    _inherit = "crm.lead"
+
+    def action_ai_summary(self):
+        self.ensure_one()
+        text = self.env["ai.engine"].chat(
+            [{"role": "user",
+              "content": "Tóm tắt cơ hội sau:\n%s" % (self.description or "")}],
+            source="crm_summary")
+        self.message_post(body=text)
+        return text
+```
+
+<Note>
+Giữ module lõi `ai_bridge` **không phụ thuộc app nghiệp vụ** (chỉ `base, mail, iap`). Mỗi tích
+hợp theo app (CRM, Helpdesk, Project...) là một **companion module bán riêng** — vừa đúng luật
+versioning của Odoo, vừa mở rộng dòng sản phẩm mà không phình lõi.
+</Note>
 
 ## 6. Hai cách thu tiền
 
