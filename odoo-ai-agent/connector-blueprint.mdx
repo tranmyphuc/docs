@@ -473,3 +473,256 @@ Quy trình port 1 phiên bản:
 Giữ kỷ luật định vị: **AI là feature của một integration bền**. Nếu trượt về "chatbot generic",
 bạn rơi lại vào vùng churn 30%/năm và rủi ro bị AI native của Odoo nuốt.
 </Warning>
+
+## Phụ lục A — Các file còn lại để module CÀI ĐƯỢC ngay
+
+### A.1 `security/ai_bridge_groups.xml`
+
+```xml
+<odoo>
+  <record id="module_category_ai_bridge" model="ir.module.category">
+    <field name="name">AI Bridge</field>
+    <field name="sequence">20</field>
+  </record>
+  <record id="group_ai_user" model="res.groups">
+    <field name="name">AI User</field>
+    <field name="category_id" ref="module_category_ai_bridge"/>
+  </record>
+  <record id="group_ai_manager" model="res.groups">
+    <field name="name">AI Manager</field>
+    <field name="category_id" ref="module_category_ai_bridge"/>
+    <field name="implied_ids" eval="[(4, ref('group_ai_user'))]"/>
+  </record>
+</odoo>
+```
+
+<Warning>
+File group phải nạp **trước** `ir.model.access.csv` (CSV tham chiếu các group). Thứ tự trong
+`data` của manifest đã đúng: groups → access csv.
+</Warning>
+
+### A.2 `models/res_config_settings.py`
+
+```python
+from odoo import fields, models
+
+class ResConfigSettings(models.TransientModel):
+    _inherit = "res.config.settings"
+
+    ai_default_provider_id = fields.Many2one(
+        "llm.provider", string="Default Provider",
+        config_parameter="ai_bridge.default_provider_id")
+    ai_daily_user_limit = fields.Integer(
+        string="Giới hạn lượt AI / user / ngày", default=200,
+        config_parameter="ai_bridge.daily_user_limit")
+```
+
+### A.3 `views/llm_provider_views.xml`
+
+```xml
+<odoo>
+  <record id="view_llm_provider_list" model="ir.ui.view">
+    <field name="name">llm.provider.list</field>
+    <field name="model">llm.provider</field>
+    <field name="arch" type="xml">
+      <list>                                   <!-- v18+: dùng &lt;list&gt;, v16/17: &lt;tree&gt; -->
+        <field name="sequence" widget="handle"/>
+        <field name="name"/>
+        <field name="provider_type"/>
+        <field name="mode"/>
+        <field name="model"/>
+        <field name="active" widget="boolean_toggle"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_llm_provider_form" model="ir.ui.view">
+    <field name="name">llm.provider.form</field>
+    <field name="model">llm.provider</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <group>
+              <field name="name"/>
+              <field name="provider_type"/>
+              <field name="mode"/>
+              <field name="model"/>
+            </group>
+            <group>
+              <field name="base_url" placeholder="vd http://localhost:11434"/>
+              <field name="api_key" password="True"
+                     groups="ai_bridge.group_ai_manager"/>
+              <field name="max_tokens"/>
+              <field name="temperature"/>
+              <field name="sequence"/>
+              <field name="active"/>
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_llm_provider" model="ir.actions.act_window">
+    <field name="name">AI Providers</field>
+    <field name="res_model">llm.provider</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+  <menuitem id="menu_ai_bridge_root" name="AI Bridge"
+            web_icon="ai_bridge,static/description/banner.png"
+            groups="ai_bridge.group_ai_user"/>
+  <menuitem id="menu_ai_provider" parent="menu_ai_bridge_root"
+            name="Providers" action="action_llm_provider"
+            groups="ai_bridge.group_ai_manager" sequence="10"/>
+</odoo>
+```
+
+### A.4 `views/ai_request_log_views.xml`
+
+```xml
+<odoo>
+  <record id="view_ai_log_list" model="ir.ui.view">
+    <field name="name">ai.request.log.list</field>
+    <field name="model">ai.request.log</field>
+    <field name="arch" type="xml">
+      <list create="false" edit="false" default_order="create_date desc">
+        <field name="create_date"/>
+        <field name="create_uid"/>
+        <field name="provider_id"/>
+        <field name="model"/>
+        <field name="status" decoration-danger="status=='error'"
+               decoration-success="status=='success'"/>
+        <field name="input_tokens" sum="Input"/>
+        <field name="output_tokens" sum="Output"/>
+        <field name="credits_used" sum="Credits"/>
+        <field name="duration_ms"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_ai_log_search" model="ir.ui.view">
+    <field name="name">ai.request.log.search</field>
+    <field name="model">ai.request.log</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="create_uid"/>
+        <field name="provider_id"/>
+        <filter name="errors" string="Errors" domain="[('status','=','error')]"/>
+        <group expand="0" string="Group By">
+          <filter name="g_provider" string="Provider" context="{'group_by':'provider_id'}"/>
+          <filter name="g_user" string="User" context="{'group_by':'create_uid'}"/>
+          <filter name="g_status" string="Status" context="{'group_by':'status'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+
+  <record id="action_ai_log" model="ir.actions.act_window">
+    <field name="name">AI Audit Log</field>
+    <field name="res_model">ai.request.log</field>
+    <field name="view_mode">list</field>
+    <field name="search_view_id" ref="view_ai_log_search"/>
+  </record>
+
+  <menuitem id="menu_ai_log" parent="menu_ai_bridge_root"
+            name="Audit Log" action="action_ai_log"
+            groups="ai_bridge.group_ai_user" sequence="20"/>
+</odoo>
+```
+
+### A.5 `views/res_config_settings_views.xml`
+
+```xml
+<odoo>
+  <record id="res_config_settings_view_form" model="ir.ui.view">
+    <field name="name">res.config.settings.ai.bridge</field>
+    <field name="model">res.config.settings</field>
+    <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//form" position="inside">
+        <app data-string="AI Bridge" string="AI Bridge" name="ai_bridge"
+             groups="ai_bridge.group_ai_manager">
+          <block title="Default behaviour">
+            <setting string="Default provider"
+                     help="Provider dùng khi không chỉ định cụ thể">
+              <field name="ai_default_provider_id"/>
+            </setting>
+            <setting string="Daily limit / user"
+                     help="Chống lạm dụng / kiểm soát chi phí">
+              <field name="ai_daily_user_limit"/>
+            </setting>
+          </block>
+        </app>
+      </xpath>
+    </field>
+  </record>
+</odoo>
+```
+
+### A.6 `data/ai_bridge_data.xml`
+
+```xml
+<odoo>
+  <!-- Provider mẫu (không kèm key — khách tự nhập) -->
+  <record id="provider_claude_default" model="llm.provider">
+    <field name="name">Claude (BYO-key)</field>
+    <field name="provider_type">anthropic</field>
+    <field name="mode">byok</field>
+    <field name="model">claude-sonnet-4-6</field>
+    <field name="sequence">10</field>
+  </record>
+  <!-- Giới hạn mặc định -->
+  <function model="ir.config_parameter" name="set_param"
+            eval="('ai_bridge.daily_user_limit', '200')"/>
+</odoo>
+```
+
+<Check>
+Sau khi có A.1–A.6 + mục 4–7, module **cài được**: `odoo -d <db> -i ai_bridge --stop-after-init`.
+Nếu lỗi, chạy auto-debug loop ở PR #3 (mục 5). Còn thiếu cho hoàn chỉnh thương mại: icon
+`static/description/icon.png`, trang `index.html`, và test `tests/test_ai_engine.py` (mock `requests`).
+</Check>
+
+## Phụ lục B — Phác thảo Phase 2: RAG trên dữ liệu Odoo
+
+Mục tiêu: AI trả lời **grounded** trên bản ghi Odoo của khách → switching-cost tăng mạnh (khách
+build corpus riêng). Kiến trúc đề xuất:
+
+```mermaid
+flowchart LR
+    S[Scheduled action: index] --> C[Chunk model/field đã chọn]
+    C --> EmbA[Embedding API: OpenAI text-embedding-3-small\nhoặc Ollama nomic-embed-text local]
+    EmbA --> V[(ai.embedding + pgvector)]
+    Q[Câu hỏi user] --> EmbQ[Embed query]
+    EmbQ --> NN[Nearest-neighbor pgvector &lt;=&gt;]
+    V --> NN
+    NN --> CTX[Top-k chunk -> inject vào messages]
+    CTX --> E[ai.engine.chat]
+```
+
+Model lưu vector (skeleton):
+
+```python
+# Phase 2 — models/ai_embedding.py  (yêu cầu extension pgvector trong PostgreSQL)
+from odoo import fields, models
+
+class AIEmbedding(models.Model):
+    _name = "ai.embedding"
+    _description = "AI Embedding Chunk"
+
+    res_model = fields.Char(required=True, index=True)
+    res_id = fields.Integer(required=True, index=True)
+    chunk = fields.Text(required=True)
+    # Lưu vector: v19 có Vector field native; v16-18 dùng cột pgvector tạo bằng SQL init,
+    # truy vấn nearest-neighbor bằng toán tử '<=>' qua self.env.cr.execute(...).
+```
+
+**Lưu ý độ tin cậy & phiên bản:**
+- **pgvector** phải được bật trong PostgreSQL của khách (`CREATE EXTENSION vector`). On-prem/Odoo.sh
+  làm được; Odoo Online thì **không cài module được** ngay từ đầu → RAG này nhắm on-prem/Odoo.sh.
+- **v19** có hỗ trợ vector/pgvector ở tầng cao hơn; **v16–18** bạn tự quản cột vector + index.
+- Cho khách GDPR: dùng **embedding local** (Ollama `nomic-embed-text`) để dữ liệu không rời hạ tầng.
+- Retrieval theo `<=>` (cosine distance) + giới hạn top-k (vd 5) rồi nhồi vào `messages` trước khi
+  gọi `ai.engine.chat`.
