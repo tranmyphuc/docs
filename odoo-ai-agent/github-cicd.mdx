@@ -1,0 +1,251 @@
+---
+title: "1. Cấu trúc GitHub & CI/CD: Issue → PR tự động"
+description: "So sánh Monorepo / Submodule / npm-pip cho việc kết hợp 3 repo, phân quyền GitHub App, và workflow YAML sinh PR từ Issue."
+---
+
+## 1.1. Chọn mô hình kết hợp 3 repo
+
+Sai lầm phổ biến là cố nhét cả 3 repo vào một mô hình duy nhất. Thực tế **mỗi repo có một
+"hình thái tiêu thụ" khác nhau** nên giải pháp tối ưu là **hybrid**:
+
+| Mô hình | Ưu điểm | Nhược điểm | Phù hợp với |
+|---------|---------|-----------|-------------|
+| **Monorepo** (copy code 3 repo vào 1) | Đơn giản, 1 lần checkout, không lo version skew | Mất lịch sử upstream, khó cập nhật, repo phình to, "ô nhiễm" namespace addons | ❌ Không khuyến nghị |
+| **Git Submodule** | Giữ lịch sử upstream, pin commit cụ thể (reproducible), tách biệt sạch | Cần `--recurse-submodules`, cần quyền đọc repo phụ trong CI | ✅ `claude-odoo-builder` (mã/template cần đọc tại runtime) |
+| **Thư viện npm/pip** | Versioning chuẩn (semver), CI cache tốt, không đụng vào source tree | Chỉ hợp với thứ thật sự là "package" | ✅ `spec-workflow-odoo` (vốn là npm package) |
+| **Service độc lập** (Docker) | Tách hẳn process, scale riêng, không nhét vào repo | Cần quản lý hạ tầng/network | ✅ `odoo-claude-mcp` (là một server) |
+
+### Khuyến nghị kiến trúc cuối cùng
+
+```
+custom-odoo-addons/                 # ⭐ REPO CHÍNH (write target)
+├── .claude/
+│   ├── commands/                   # ← scaffold bởi spec-workflow-odoo (npm)
+│   ├── steering/                   # product.md, tech.md, structure.md
+│   └── skills/
+│       └── odoo-builder/           # ← git submodule: 19prince/claude-odoo-builder
+├── addons/
+│   └── my_custom_module/           # mã nguồn module tùy biến (Agent ghi vào đây)
+├── .mcp.json                       # ← khai báo odoo-claude-mcp server
+├── CLAUDE.md                       # ← luật nghiêm ngặt (xem mục 4)
+├── .gitmodules
+├── package.json                    # devDependency: spec-workflow-odoo
+└── .github/workflows/ai-build.yml  # ← CI sinh PR từ Issue
+```
+
+`spec-workflow-odoo` là **dev-tool**, không phải runtime dependency của module Odoo → đưa
+vào `devDependencies`, không vendor source. `claude-odoo-builder` chứa template/script Agent
+cần đọc tại chỗ → submodule. `odoo-claude-mcp` là server → chạy tách, gọi qua `.mcp.json`.
+
+### Thiết lập submodule + npm
+
+```bash
+# Repo chính
+cd custom-odoo-addons
+
+# 1) Vendor builder qua submodule (pin theo commit để reproducible)
+git submodule add https://github.com/19prince/claude-odoo-builder .claude/skills/odoo-builder
+git -C .claude/skills/odoo-builder checkout <commit-sha-cu-the>
+git add .gitmodules .claude/skills/odoo-builder && git commit -m "chore: vendor odoo-builder skills"
+
+# 2) Spec workflow như dev-tool
+npm init -y
+npm install --save-dev @stanleykao72/claude-code-spec-workflow-odoo
+npx claude-code-spec-workflow odoo-setup   # scaffold .claude/commands, steering, templates
+```
+
+`.mcp.json` ở repo chính (Claude Code tự đọc):
+
+```json
+{
+  "mcpServers": {
+    "odoo": {
+      "command": "docker",
+      "args": [
+        "compose", "-f", "docker-compose.mcp.yml",
+        "run", "--rm", "-i", "odoo-mcp"
+      ],
+      "env": {
+        "ODOO_URL": "http://host.docker.internal:8069",
+        "ODOO_DB": "${ODOO_DB}",
+        "ODOO_USER": "${ODOO_USER}",
+        "ODOO_PASSWORD": "${ODOO_PASSWORD}"
+      }
+    }
+  }
+}
+```
+
+## 1.2. Phân quyền GitHub App / token
+
+Yêu cầu nghiệp vụ: Agent **đọc** spec/template từ repo phụ và **ghi** code vào repo chính.
+Không bao giờ cấp quyền write cho repo phụ.
+
+### Phương án A — GitHub App (khuyến nghị cho tổ chức)
+
+Tạo một GitHub App (Settings → Developer settings → GitHub Apps) và cài đặt cho cả 3 repo,
+với **fine-grained permissions tách biệt theo từng repo**:
+
+| Repo | Contents | Pull requests | Issues | Actions | Workflows |
+|------|----------|---------------|--------|---------|-----------|
+| `custom-odoo-addons` (chính) | **Read & write** | **Read & write** | Read & write | Read | Read & write |
+| `claude-odoo-builder` (phụ) | **Read-only** | — | — | — | — |
+| `spec-workflow-odoo` (public) | Read-only (hoặc dùng npm, không cần) | — | — | — | — |
+
+Trong CI, đổi private key của App lấy **installation access token** (token này tự động bị
+giới hạn theo đúng quyền đã cấp ở trên — nguyên tắc least privilege):
+
+```yaml
+- name: Generate GitHub App token
+  id: app-token
+  uses: actions/create-github-app-token@v1
+  with:
+    app-id: ${{ vars.AI_APP_ID }}
+    private-key: ${{ secrets.AI_APP_PRIVATE_KEY }}
+    owner: ${{ github.repository_owner }}
+    # Liệt kê tường minh các repo App được phép thao tác trong run này
+    repositories: |
+      custom-odoo-addons
+      claude-odoo-builder
+```
+
+### Phương án B — Deploy key (đơn giản, cho submodule private)
+
+Nếu chỉ cần checkout submodule private trong CI mà không muốn App, dùng **read-only deploy key**:
+
+```bash
+ssh-keygen -t ed25519 -f builder_deploy_key -N ""
+# Public key → claude-odoo-builder ▸ Settings ▸ Deploy keys (KHÔNG tick "Allow write")
+# Private key → custom-odoo-addons ▸ Settings ▸ Secrets ▸ BUILDER_DEPLOY_KEY
+```
+
+<Tip>
+**Least privilege là bắt buộc**: token mà Claude Code Action dùng để mở PR chỉ cần quyền trên
+repo chính. Quyền đọc repo phụ nên là token/deploy-key riêng, read-only. Tách hai loại token
+giúp một secret rò rỉ không kéo theo quyền ghi vào nơi khác.
+</Tip>
+
+## 1.3. Workflow: Issue → PR tự động
+
+Kịch bản: tạo Issue mô tả nghiệp vụ ERP, gắn label `ai-build`, Actions sẽ chạy spec-workflow
++ MCP (khảo sát schema Odoo) và mở PR.
+
+`.github/workflows/ai-build.yml`:
+
+```yaml
+name: AI Build Odoo Module
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: ai-build-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Chỉ chạy khi gắn đúng label, tránh trigger nhầm
+    if: github.event.label.name == 'ai-build'
+    runs-on: ubuntu-latest
+    services:
+      # Odoo tạm cho CI để MCP khảo sát schema thật của đúng phiên bản
+      odoo:
+        image: odoo:18.0
+        env:
+          HOST: postgres
+          USER: odoo
+          PASSWORD: odoo
+        ports: ["8069:8069"]
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+        ports: ["5432:5432"]
+
+    steps:
+      - name: Generate App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.AI_APP_ID }}
+          private-key: ${{ secrets.AI_APP_PRIVATE_KEY }}
+          repositories: |
+            custom-odoo-addons
+            claude-odoo-builder
+
+      - name: Checkout (kèm submodule builder)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: "npm" }
+      - run: npm ci
+
+      - name: Init & seed Odoo DB (đúng phiên bản cần build)
+        run: |
+          # Cài DB rỗng để fields_get phản ánh schema thật của v18
+          curl -s --retry 10 --retry-connrefused http://localhost:8069/web/database/selector >/dev/null
+          python .github/scripts/init_odoo_db.py   # tạo db 'ci', cài 'base'
+
+      - name: Run Claude Code (spec-workflow + MCP)
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ODOO_URL: http://localhost:8069
+          ODOO_DB: ci
+          ODOO_USER: admin
+          ODOO_PASSWORD: admin
+        with:
+          # Truyền nội dung Issue làm đặc tả nghiệp vụ
+          prompt: |
+            Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
+
+            ${{ github.event.issue.body }}
+
+            Thực thi quy trình:
+            1. Chạy /odoo-detect để xác định phiên bản Odoo của instance.
+            2. BẮT BUỘC dùng MCP tool get_model_fields / inspect_odoo_version để khảo sát
+               schema THỰC TẾ trước khi viết bất kỳ code nào (xem CLAUDE.md).
+            3. Chạy /odoo-spec-create để sinh Requirements → Design → Tasks.
+            4. Sinh module trong addons/, kèm ir.model.access.csv hợp lệ.
+          claude_args: "--mcp-config .mcp.json --permission-mode acceptEdits"
+
+      - name: Tạo Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ai/issue-${{ github.event.issue.number }}
+          title: "AI: ${{ github.event.issue.title }}"
+          body: |
+            Tự động sinh từ Issue #${{ github.event.issue.number }}.
+            Schema được khảo sát động qua MCP (không dùng dữ liệu tĩnh).
+
+            Closes #${{ github.event.issue.number }}
+          labels: ai-generated
+          draft: true
+```
+
+<Warning>
+**Mấu chốt độc lập phiên bản trong CI**: service `odoo` phải đúng phiên bản đích (đổi
+`odoo:18.0` → `odoo:17.0`/`19.0`). MCP khảo sát chính instance này nên code sinh ra luôn khớp
+schema thật của phiên bản đó — đây là lý do hệ thống không phụ thuộc dữ liệu tĩnh của LLM.
+</Warning>
+
+Để hỗ trợ ma trận nhiều phiên bản, bọc job trong `strategy.matrix`:
+
+```yaml
+    strategy:
+      fail-fast: false
+      matrix:
+        odoo: ["14.0", "16.0", "17.0", "18.0", "19.0"]
+```

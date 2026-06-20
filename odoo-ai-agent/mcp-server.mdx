@@ -1,0 +1,318 @@
+---
+title: "2. MCP Server độc lập phiên bản"
+description: "MCP server Python (thư viện mcp chính thức / FastMCP) truy vấn động Odoo qua XML-RPC: inspect_odoo_version, get_model_fields, find_view_external_id và sinh ir.model.access.csv."
+---
+
+## 2.1. Vì sao XML-RPC là "thuốc giải" cho Field Blindness
+
+Mọi phiên bản Odoo (v8 → v19) đều mở 2 endpoint XML-RPC ổn định:
+
+- `/xmlrpc/2/common` — `version()`, `authenticate()`
+- `/xmlrpc/2/object` — `execute_kw(db, uid, password, model, method, args, kwargs)`
+
+Phương thức `fields_get` trả về **đúng** field tồn tại trên model **tại instance đang chạy**,
+gồm cả field do module bên thứ ba thêm vào. Đây chính là nguồn sự thật giúp Agent không bịa field.
+
+<Info>
+SDK dùng ở đây là `mcp` chính thức (`pip install mcp`), lớp `FastMCP` (`mcp.server.fastmcp`).
+Decorator `@mcp.tool()` tự sinh JSON schema từ type hint của hàm Python. Tham khảo
+[python-sdk](https://github.com/modelcontextprotocol/python-sdk).
+</Info>
+
+## 2.2. Cài đặt
+
+```bash
+pip install "mcp[cli]"   # SDK MCP chính thức, kèm CLI
+# Python chuẩn đã có sẵn xmlrpc.client — không cần lib Odoo nào khác
+```
+
+## 2.3. Mã nguồn `server.py`
+
+```python
+"""
+odoo_mcp/server.py
+MCP server độc lập phiên bản cho Odoo, truy vấn động qua XML-RPC.
+
+Chạy:
+    ODOO_URL=http://host.docker.internal:8069 ODOO_DB=ci \
+    ODOO_USER=admin ODOO_PASSWORD=admin \
+    python -m odoo_mcp.server
+"""
+from __future__ import annotations
+
+import os
+import xmlrpc.client
+from functools import lru_cache
+from typing import Any
+
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("odoo-version-independent")
+
+# --------------------------------------------------------------------------- #
+# Lớp kết nối XML-RPC (cache theo cấu hình môi trường)
+# --------------------------------------------------------------------------- #
+class OdooRPC:
+    def __init__(self) -> None:
+        self.url = os.environ["ODOO_URL"].rstrip("/")
+        self.db = os.environ["ODOO_DB"]
+        self.user = os.environ["ODOO_USER"]
+        self.password = os.environ["ODOO_PASSWORD"]
+        # allow_none=True để truyền/nhận giá trị None đúng chuẩn XML-RPC
+        self._common = xmlrpc.client.ServerProxy(
+            f"{self.url}/xmlrpc/2/common", allow_none=True
+        )
+        self._object = xmlrpc.client.ServerProxy(
+            f"{self.url}/xmlrpc/2/object", allow_none=True
+        )
+        self._uid: int | None = None
+
+    @property
+    def uid(self) -> int:
+        if self._uid is None:
+            self._uid = self._common.authenticate(
+                self.db, self.user, self.password, {}
+            )
+            if not self._uid:
+                raise RuntimeError(
+                    "Xác thực Odoo thất bại — kiểm tra ODOO_DB/USER/PASSWORD."
+                )
+        return self._uid
+
+    def version(self) -> dict[str, Any]:
+        return self._common.version()
+
+    def execute_kw(
+        self, model: str, method: str, args: list, kwargs: dict | None = None
+    ) -> Any:
+        return self._object.execute_kw(
+            self.db, self.uid, self.password, model, method, args, kwargs or {}
+        )
+
+
+@lru_cache(maxsize=1)
+def rpc() -> OdooRPC:
+    return OdooRPC()
+
+
+# --------------------------------------------------------------------------- #
+# Tool 1: inspect_odoo_version
+# --------------------------------------------------------------------------- #
+@mcp.tool()
+def inspect_odoo_version() -> dict[str, Any]:
+    """Trả về phiên bản Odoo của instance đang chạy (major/full/series).
+
+    Dùng tool này ĐẦU TIÊN trong mọi phiên làm việc để mọi cú pháp view/code
+    sinh ra khớp đúng phiên bản (vd: bỏ 'attrs'/'states' từ v17+)."""
+    info = rpc().version()
+    server_version = info.get("server_version", "")          # vd "18.0"
+    series = info.get("server_serie", server_version)         # vd "18.0"
+    try:
+        major = int(str(series).split(".")[0])
+    except (ValueError, IndexError):
+        major = None
+    return {
+        "server_version": server_version,
+        "server_serie": series,
+        "major": major,
+        "protocol_version": info.get("protocol_version"),
+        # Gợi ý quy tắc cú pháp phụ thuộc phiên bản để Agent tuân thủ
+        "syntax_hints": {
+            "uses_attrs_states": (major is not None and major < 17),
+            "view_invisible_uses_column_python": (major is not None and major >= 17),
+            "list_tag": "tree" if (major or 0) < 18 else "list",
+        },
+    }
+
+
+# --------------------------------------------------------------------------- #
+# Tool 2: get_model_fields
+# --------------------------------------------------------------------------- #
+@mcp.tool()
+def get_model_fields(model_name: str, attributes: list[str] | None = None) -> dict[str, Any]:
+    """Liệt kê field THỰC TẾ của một model qua fields_get().
+
+    Args:
+        model_name: tên kỹ thuật của model, vd 'sale.order', 'res.partner'.
+        attributes: thuộc tính field muốn lấy. Mặc định: type, string, required,
+                    readonly, relation, selection, store.
+
+    Trả về dict {field_name: {...}}. Nếu model không tồn tại sẽ báo lỗi rõ ràng,
+    nhờ đó Agent KHÔNG bịa field."""
+    attrs = attributes or [
+        "type", "string", "required", "readonly", "relation", "selection", "store",
+    ]
+    # Kiểm tra model tồn tại trước, cho thông báo dễ hiểu
+    exists = rpc().execute_kw(
+        "ir.model", "search_count", [[["model", "=", model_name]]]
+    )
+    if not exists:
+        return {
+            "error": f"Model '{model_name}' không tồn tại trên instance này.",
+            "hint": "Có thể module chứa model chưa được cài. Kiểm tra ir.module.module.",
+        }
+    fields = rpc().execute_kw(
+        model_name, "fields_get", [], {"attributes": attrs}
+    )
+    return {"model": model_name, "field_count": len(fields), "fields": fields}
+
+
+# --------------------------------------------------------------------------- #
+# Tool 3: find_view_external_id
+# --------------------------------------------------------------------------- #
+@mcp.tool()
+def find_view_external_id(
+    model_name: str, view_type: str | None = None
+) -> dict[str, Any]:
+    """Tìm các view của model và XML external id (module.name) để kế thừa an toàn.
+
+    Args:
+        model_name: vd 'res.partner'.
+        view_type: lọc theo loại view: 'form', 'list'/'tree', 'kanban', 'search'...
+                   Bỏ trống để lấy tất cả.
+
+    Trả về danh sách view kèm external_id thật — tránh việc Agent đoán sai
+    inherit_id khi viết view kế thừa."""
+    domain: list = [["model", "=", model_name]]
+    if view_type:
+        # Odoo nội bộ vẫn lưu 'tree' cho list view ở nhiều phiên bản
+        vt = "tree" if view_type == "list" else view_type
+        domain.append(["type", "=", vt])
+
+    views = rpc().execute_kw(
+        "ir.ui.view", "search_read", [domain],
+        {"fields": ["name", "type", "inherit_id", "priority", "mode"]},
+    )
+    if not views:
+        return {"model": model_name, "views": [], "note": "Không tìm thấy view phù hợp."}
+
+    view_ids = [v["id"] for v in views]
+    # Lấy external id qua ir.model.data
+    xmlids = rpc().execute_kw(
+        "ir.model.data", "search_read",
+        [[["model", "=", "ir.ui.view"], ["res_id", "in", view_ids]]],
+        {"fields": ["module", "name", "res_id"]},
+    )
+    xmlid_by_res = {
+        x["res_id"]: f'{x["module"]}.{x["name"]}' for x in xmlids
+    }
+    for v in views:
+        v["external_id"] = xmlid_by_res.get(v["id"])  # None nếu là view không có xmlid
+    return {"model": model_name, "view_count": len(views), "views": views}
+
+
+# --------------------------------------------------------------------------- #
+# Tool 4: generate_access_csv — sinh ir.model.access.csv
+# --------------------------------------------------------------------------- #
+@mcp.tool()
+def generate_access_csv(
+    model_name: str,
+    group_xml_ids: list[str] | None = None,
+    perms: dict[str, bool] | None = None,
+) -> dict[str, Any]:
+    """Sinh nội dung ir.model.access.csv hợp lệ cho một model.
+
+    - Xác minh model tồn tại (qua ir.model) và suy ra technical name dạng
+      'model_xxx_yyy' từ tên model 'xxx.yyy' theo đúng quy ước Odoo.
+    - Xác minh mỗi group_xml_id tồn tại (ir.model.data) trước khi đưa vào CSV,
+      tránh sinh quyền trỏ tới group ma.
+
+    Args:
+        model_name: vd 'x_project.task'.
+        group_xml_ids: danh sách group, vd ['base.group_user']. Bỏ trống = quyền
+                       cho mọi user nội bộ (group rỗng — chỉ dùng khi thật cần).
+        perms: ghi đè quyền, mặc định read+write+create (không unlink).
+
+    Trả về {csv, lines, warnings}."""
+    p = {"read": 1, "write": 1, "create": 1, "unlink": 0}
+    if perms:
+        p.update({k: int(bool(v)) for k, v in perms.items()})
+
+    # 1) Model phải tồn tại
+    model_rec = rpc().execute_kw(
+        "ir.model", "search_read",
+        [[["model", "=", model_name]]], {"fields": ["id", "model"]},
+    )
+    warnings: list[str] = []
+    if not model_rec:
+        return {"error": f"Model '{model_name}' không tồn tại — không sinh CSV."}
+
+    # Quy ước Odoo: model_ref = model name thay '.' bằng '_'
+    model_ref = model_name.replace(".", "_")
+
+    # 2) Xác minh group tồn tại
+    valid_groups: list[str | None] = []
+    for gid in (group_xml_ids or [None]):
+        if gid is None:
+            valid_groups.append(None)
+            continue
+        try:
+            module, name = gid.split(".", 1)
+        except ValueError:
+            warnings.append(f"Bỏ qua group '{gid}': sai định dạng 'module.name'.")
+            continue
+        found = rpc().execute_kw(
+            "ir.model.data", "search_count",
+            [[["model", "=", "res.groups"], ["module", "=", module], ["name", "=", name]]],
+        )
+        if found:
+            valid_groups.append(gid)
+        else:
+            warnings.append(f"Group '{gid}' không tồn tại trên instance — đã loại bỏ.")
+
+    header = "id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink"
+    lines = [header]
+    for gid in valid_groups:
+        suffix = (gid.split(".")[-1] if gid else "all")
+        access_id = f"access_{model_ref}_{suffix}"
+        lines.append(
+            f"{access_id},{access_id},model_{model_ref},"
+            f"{gid or ''},{p['read']},{p['write']},{p['create']},{p['unlink']}"
+        )
+    return {"csv": "\n".join(lines) + "\n", "lines": lines, "warnings": warnings}
+
+
+if __name__ == "__main__":
+    # Transport mặc định stdio — phù hợp khai báo 'command' trong .mcp.json
+    mcp.run()
+```
+
+## 2.4. Khai báo trong Claude Code
+
+`.mcp.json` (chạy server bằng Python trực tiếp ở host):
+
+```json
+{
+  "mcpServers": {
+    "odoo": {
+      "command": "python",
+      "args": ["-m", "odoo_mcp.server"],
+      "env": {
+        "ODOO_URL": "http://host.docker.internal:8069",
+        "ODOO_DB": "ci",
+        "ODOO_USER": "admin",
+        "ODOO_PASSWORD": "admin"
+      }
+    }
+  }
+}
+```
+
+Kiểm thử nhanh bằng MCP Inspector trước khi gắn vào Agent:
+
+```bash
+npx @modelcontextprotocol/inspector python -m odoo_mcp.server
+```
+
+<Tip>
+**Bảo mật**: không bao giờ hardcode `ODOO_PASSWORD` vào `.mcp.json` commit lên repo. Dùng
+biến môi trường `${ENV_VAR}` (Claude Code hỗ trợ nội suy) hoặc Odoo **API key** thay cho mật
+khẩu (Settings → Users → API Keys, dùng key đó ở vị trí password trong `authenticate`).
+</Tip>
+
+## 2.5. Mở rộng cho repo `rosenvladimirov/odoo-claude-mcp`
+
+Repo gốc cung cấp 197+ tool (CRUD, report, attachment...). Bốn tool trên là lớp **"schema
+introspection"** tối thiểu để chống Field Blindness. Có thể đăng ký thêm như một MCP server
+thứ hai (`odoo-full`) song song với server nhẹ này — Agent dùng server nhẹ để khảo sát schema,
+server đầy đủ để thao tác dữ liệu.

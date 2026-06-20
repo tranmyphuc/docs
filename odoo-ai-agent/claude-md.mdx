@@ -1,0 +1,143 @@
+---
+title: "4. CLAUDE.md nghiêm ngặt — chống Field Blindness"
+description: "File CLAUDE.md đặt ở gốc repo chính, ép Claude Code gọi MCP khảo sát Database/Schema thực tế trước khi viết bất kỳ dòng Python/XML nào."
+---
+
+## 4.1. Vì sao CLAUDE.md là "hợp đồng" bắt buộc
+
+`CLAUDE.md` ở thư mục gốc được Claude Code tự động nạp vào ngữ cảnh mọi phiên làm việc. Đây là
+nơi đặt **luật cứng** (hard constraints). Để chống Field Blindness, file này phải biến việc gọi
+MCP từ "tùy chọn" thành "điều kiện tiên quyết" — Agent **không được phép** viết field/model/view
+nếu chưa xác minh qua MCP.
+
+<Note>
+Mẹo hiệu quả: viết luật ở dạng **Definition of Done có thể kiểm chứng** ("mỗi field XML phải
+xuất hiện trong output `get_model_fields` gần nhất") thay vì lời khuyên mềm ("hãy cẩn thận với
+tên field"). Ràng buộc kiểm chứng được thì Agent tự audit được.
+</Note>
+
+## 4.2. File `CLAUDE.md` hoàn chỉnh
+
+````markdown
+# CLAUDE.md — Luật phát triển Odoo (BẮT BUỘC)
+
+Bạn là kỹ sư Odoo cấp cao làm việc trên repo addons tùy biến này. Nguồn sự thật về
+schema là **Odoo instance đang chạy**, KHÔNG phải kiến thức huấn luyện của bạn. Mọi
+phiên bản Odoo khác nhau về field/cú pháp view — tuyệt đối không suy đoán theo trí nhớ.
+
+## QUY TẮC TỐI THƯỢNG (Zero-Tolerance)
+
+1. 🚫 **KHÔNG được viết bất kỳ field Python, field XML, hay `inherit_id` nào** mà chưa
+   xác minh nó tồn tại qua MCP trong CHÍNH phiên làm việc này.
+2. 🚫 **KHÔNG dựa vào trí nhớ** về tên field/model/view của Odoo. Trí nhớ của bạn có thể
+   thuộc phiên bản khác → sai.
+3. ✅ Nếu MCP không khả dụng, **DỪNG LẠI** và báo cáo. KHÔNG fallback sang đoán.
+
+## QUY TRÌNH BẮT BUỘC TRƯỚC KHI VIẾT CODE (Pre-flight)
+
+Thực hiện theo đúng thứ tự, KHÔNG bỏ bước:
+
+### Bước 0 — Xác định phiên bản
+- Gọi `inspect_odoo_version`.
+- Ghi nhớ `major` và `syntax_hints`. Áp dụng:
+  - `major < 17`: được dùng `attrs`/`states` trong view.
+  - `major >= 17`: KHÔNG dùng `attrs`/`states`; dùng thuộc tính trực tiếp
+    (`invisible="..."`, `readonly="..."`, `required="..."`).
+  - `major >= 18`: thẻ list view là `<list>`, KHÔNG phải `<tree>`.
+
+### Bước 1 — Khảo sát mọi model bạn sẽ chạm tới
+- Với MỖI model (kể cả model kế thừa): gọi `get_model_fields(model_name)`.
+- Lập **bảng field hợp lệ** từ kết quả. Chỉ field nằm trong bảng này mới được dùng.
+- Nếu cần một field chưa tồn tại → đó là field MỚI bạn phải định nghĩa trong Python model;
+  ghi rõ điều này, đừng nhầm nó là field có sẵn.
+
+### Bước 2 — Trước khi viết view kế thừa
+- Gọi `find_view_external_id(model_name, view_type)`.
+- Dùng ĐÚNG `external_id` trả về làm `inherit_id`. KHÔNG bịa `module.view_xxx`.
+
+### Bước 3 — Trước khi tạo model mới / quyền truy cập
+- Sau khi định nghĩa model Python, gọi `generate_access_csv(model_name, group_xml_ids=[...])`.
+- Dán y nguyên output vào `security/ir.model.access.csv`. KHÔNG tự gõ tay file này.
+
+## TỰ KIỂM TRA TRƯỚC KHI KẾT THÚC (Self-audit — bắt buộc in ra)
+
+Trước khi báo hoàn thành, in checklist và đánh dấu từng mục:
+
+- [ ] Đã gọi `inspect_odoo_version` và tuân thủ cú pháp đúng phiên bản.
+- [ ] MỖI field XML/Python tham chiếu field có sẵn đều xuất hiện trong output
+      `get_model_fields` của phiên này (liệt kê field → nguồn).
+- [ ] MỖI `inherit_id` khớp `external_id` từ `find_view_external_id`.
+- [ ] `ir.model.access.csv` sinh từ `generate_access_csv`, không có group/model ma.
+- [ ] Không có field/model nào chỉ dựa trên "trí nhớ".
+
+Nếu BẤT KỲ mục nào chưa thỏa → quay lại gọi MCP, KHÔNG được kết thúc.
+
+## CHỐNG SUY ĐOÁN (Anti-hallucination)
+
+- Khi không chắc, gọi MCP thêm — RẺ hơn nhiều so với một PR sai schema.
+- Khi viện dẫn một field, luôn kèm chú thích nguồn, ví dụ:
+  `# field 'commercial_partner_id' — xác minh qua get_model_fields('res.partner')`
+- Cấm tuyệt đối: copy snippet từ trí nhớ rồi "hy vọng nó đúng phiên bản".
+
+## QUY ƯỚC DỰ ÁN
+
+- Module mới đặt trong `addons/<module_name>/` theo cấu trúc chuẩn Odoo.
+- Manifest `__manifest__.py` khai báo `version` dạng `<odoo_major>.1.0.0`.
+- Template QWeb/XML phức tạp: tham khảo skill trong `.claude/skills/odoo-builder/`.
+- Test bằng `pytest-odoo`; mọi model mới phải có ít nhất 1 test tạo bản ghi.
+````
+
+## 4.3. Củng cố luật bằng Hook (tùy chọn nhưng mạnh)
+
+CLAUDE.md là ràng buộc "mềm" ở tầng ngữ cảnh. Để **cưỡng chế kỹ thuật**, thêm `PreToolUse`
+hook chặn ghi file `.py`/`.xml` nếu trong phiên chưa từng gọi MCP introspection. Cấu hình ở
+`.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/require_schema_check.py"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`.claude/hooks/require_schema_check.py` (đọc input JSON từ stdin, chặn nếu chưa khảo sát schema):
+
+```python
+#!/usr/bin/env python3
+import json, sys, pathlib
+
+data = json.load(sys.stdin)
+path = data.get("tool_input", {}).get("file_path", "")
+
+# Chỉ áp dụng cho file Odoo code
+if not path.endswith((".py", ".xml")):
+    sys.exit(0)
+
+# Marker do Agent/MCP wrapper ghi ra sau khi gọi get_model_fields trong phiên này
+marker = pathlib.Path(".claude/.schema_checked")
+if not marker.exists():
+    print(
+        "CHẶN: Chưa khảo sát schema qua MCP trong phiên này. "
+        "Hãy gọi inspect_odoo_version + get_model_fields trước khi viết .py/.xml.",
+        file=sys.stderr,
+    )
+    sys.exit(2)   # exit code 2 = chặn tool và trả thông báo cho Claude
+sys.exit(0)
+```
+
+<Warning>
+Hook là tuyến phòng thủ thứ hai, không thay thế CLAUDE.md. Hãy giữ cả hai: CLAUDE.md định
+hướng hành vi, hook cưỡng chế ở ranh giới ghi file. `exit(2)` sẽ trả thông báo lỗi về cho
+Claude để nó tự sửa hành vi (gọi MCP rồi thử lại).
+</Warning>
