@@ -1,0 +1,125 @@
+---
+title: "Chiến lược thị trường: App Store Odoo & so sánh marketplace"
+description: "Tổng hợp 2 báo cáo deep-research (có dẫn nguồn + nhãn độ tin cậy): khả thi đưa sản phẩm AI lên Odoo Apps store, khoảng trống AI của Odoo, và so sánh cơ hội giữa các marketplace cho dev solo/vốn ít."
+---
+
+<Note>
+Trang này tổng hợp hai báo cáo deep-research đã kiểm chứng (verify chéo nguồn chính thức của
+Odoo và các dev docs marketplace). Mỗi nhóm kết luận có **nhãn độ tin cậy**. Số liệu doanh thu
+marketplace phần lớn là self-reported → đọc kèm cảnh báo ở cuối.
+</Note>
+
+## Phần 1 — Hệ thống Claude Code + MCP có giúp build app store không?
+
+**Có, nhưng gián tiếp.** Phân biệt hai vật phẩm khác loại:
+
+| | Dây chuyền dev (Claude Code + MCP + spec-workflow) | Sản phẩm store |
+|---|---|---|
+| Là gì | Công cụ *sản xuất* module nhanh & đúng schema | Module Odoo cài vào Odoo của khách |
+| Chạy ở | Máy dev / CI | Production của khách (`installable: True`) |
+| Bán được? | Không (là means of production) | Có (là hàng hóa) |
+
+→ Hệ thống của bạn là **nhà máy** để đẻ nhiều module đa-phiên-bản nhanh; code AI sinh ra **vẫn
+phải qua review chất lượng của Odoo** như code người viết. *(Độ tin cậy: Cao)*
+
+### Ràng buộc thương mại bắt buộc nắm
+
+| Yếu tố | Sự thật đã verify | Hệ quả |
+|---|---|---|
+| **Odoo Online (SaaS)** | Cấm cài module Python tùy biến; chỉ XML/Studio | Module AI gọi LLM **không bán được cho khách Online** → nhắm **Odoo.sh + on-prem + Community** |
+| **Commission** | Odoo lấy **30%** app / **25%** IAP (dev giữ 70/75%) | Tính vào giá |
+| **Payout** | PO đóng khi đạt **≥ €400** chưa redeem, trả hàng tháng | Cần volume |
+| **License** | **OPL-1** cho app trả phí; OPL-1 **không** phụ thuộc module **AGPL-3** | Dependency dùng LGPL-3 |
+| **Versioning** | Mỗi phiên bản Odoo (từ v13) bán **riêng** | Đa phiên bản = nhiều SKU |
+| **IAP** | Khung credit hợp chuẩn để thu theo lượng dùng | Cách monetize "AI theo usage" |
+
+*(Tất cả: Độ tin cậy Cao — apps.odoo.com FAQ, licenses doc, forum)*
+
+## Phần 2 — Khoảng trống AI của Odoo (cơ hội)
+
+Odoo 18 (10/2024) mới có AI Fields + OCR + lead scoring. Odoo 19 (9/2025) có **AI App** đầy đủ
+(AI Agents + RAG/pgvector, Ask AI, AI server actions); provider native: **OpenAI + Gemini**.
+*(Cao)*
+
+| Khoảng trống | Mức độ | Bằng chứng |
+|---|---|---|
+| Khóa provider (chỉ OpenAI/Gemini) | Cao | Forum hỏi dùng Gemini/Claude key riêng |
+| Không có LLM local/on-prem | Cao | Loạt module `local_llm_odoo`, `llm_ollama`, apexive/odoo-llm |
+| Privacy/GDPR — data đi qua OpenAI | Cao (Critical ngành quy định) | Nhiều blog tư vấn GDPR-compliant AI |
+| Community Edition = 0 AI native | Cao | AI nằm sau paywall Enterprise |
+| Agent chỉ "draft", chưa tự hành động | TB–Cao | Agent draft + human approve |
+| OCR chưa đủ tin cậy | TB | Review OCR, forum kế toán |
+| Phủ AI không đều (POS thiếu) | TB | So sánh v18/v19 |
+
+> 🟡 *Cảnh báo:* các con số "80% module AI kém", "AI native đáp ứng 25% nhu cầu", "Odoo 20 ra
+> 9/2026 có agentic AI" đến từ blog SEO/đối tác đơn lẻ → định hướng, không phải dữ kiện chắc chắn.
+
+## Phần 3 — So sánh marketplace (cho dev solo/vốn ít, tối đa tổng thu & độ bền)
+
+| Nền tảng | Hoa hồng (dev giữ) | Rào cản | Quy mô | Hợp solo? | Rủi ro hãng nuốt AI |
+|---|---|---|---|---|---|
+| **Shopify** | 0% tới $1M lifetime, sau đó 15% | Thấp ($19) | ~6,8M store; ~$1 tỷ/năm trả dev | ⭐ Rất tốt | Cao (Sidekick, Magic) |
+| **Atlassian** | Forge 0%→16–17%; Connect 20–25% | TB | ~$4 tỷ tích luỹ; ARPU cao | ⭐ Tốt | TB (Rovo, mua DX $1 tỷ) |
+| **Odoo** | 30% app / 25% IAP | Thấp | ~13–16M user; thị trường paid nhỏ | ✅ (đúng skill bạn) | TB–Cao (AI native v19) |
+| **HubSpot** | 0% | TB–Cao ($400/th tier) | 2,5M install | TB | TB |
+| **Zoho** | 0% | Thấp | — | ✅ | TB |
+| **WordPress/Woo** | 0% (tự phân phối) | Rất thấp | 60k+ plugin; 4,65M store Woo | ✅ (monetize khó) | Thấp |
+| **Microsoft AppSource** | 3% giao dịch | TB | Không minh bạch | TB | Cao (Copilot) |
+| **Salesforce** | 15% + **$999/lần** review + $150/năm | **Cao** | 10M+ install | ❌ đắt/chậm | Cao (Einstein/Agentforce) |
+| **SAP / NetSuite** | 25% (BTP) / không công bố | **Rất cao** | Enterprise | ❌ | Cao |
+
+*(Rev-share: Cao — dev docs chính thức. Earnings/size: TB — phần lớn self-reported.)*
+
+### Category nào thu ỔN & BỀN nhất
+
+| Category | Độ bền | Vì sao |
+|---|---|---|
+| **Integration / Connector** | ⭐ Cao nhất | Cấu hình lại tốn hàng tuần → lock-in 18–36 tháng |
+| **Kế toán / Thuế / Compliance** | Cao | Gỡ ra = rủi ro audit; migrate đắt |
+| **Backup / Security** | Cao | Bắt buộc cho GDPR/HIPAA |
+| **Invoicing / Billing / Subscription** | Cao | Gắn vào dòng tiền |
+| **Reporting / BI** | TB–Cao | Thành chuẩn vận hành |
+| **AI wrapper / chatbot generic** | ❌ Thấp | **Không moat; churn nhanh hơn 30%** |
+
+**Hai phát hiện chốt (đã verify):**
+- App AI earn nhiều hơn/payer (+41%) nhưng **giữ chân kém: 21,1% vs 30,7%/năm** (RevenueCat trên
+  115.000 app/$16 tỷ). *(Cao)*
+- "Integration giảm nửa churn / sticky gấp 2×" (Atlassian) — **chưa verify verbatim** → định hướng đúng, số chưa chắc. *(TB–Thấp)*
+
+### Rủi ro nền tảng (đã có bằng chứng thật)
+- Shopify khai tử app đã mua (Stocky, 8/2026); Salesforce gộp AppExchange→AgentExchange; Atlassian
+  mua DX $1 tỷ. **IBM rớt 13,15% trong 1 ngày (23/02/2026)** sau khi Anthropic công bố Claude Code
+  modernize COBOL — *minh chứng AI có thể bốc hơi giá trị của cả người khổng lồ*. *(Đã verify)*
+
+## Khuyến nghị cuối
+
+1. **Đừng định vị sản phẩm là "AI wrapper".** AI phải là *tính năng* trong một integration bền.
+2. **Tiền bền nằm ở category** (integration/connector + compliance), không phải ở chữ "AI".
+3. **Kinh tế dev tốt nhất:** Shopify & Atlassian (giữ 100% tới $1M) > Odoo (cắt 30%).
+4. **Cho bạn — chiến lược 2 chân trời:**
+   - *Gần (0–6 th):* dùng lợi thế Odoo+AI+Claude/MCP ship một **connector sticky** (xem
+     [blueprint](/odoo-ai-agent/connector-blueprint)), nhắm on-prem/Odoo.sh/Community.
+   - *Cao (6–18 th):* đưa năng lực sang **Atlassian/Shopify** với app integration/automation có AI
+     là feature.
+5. Xây **kênh sở hữu trực tiếp**; tránh phụ thuộc một marketplace.
+
+## Cảnh báo độ tin cậy
+
+- **Cao (verify nguồn chính thức/đa nguồn):** ràng buộc SaaS, commission, licensing, AI churn
+  21,1%/30,7%, rev-share các nền tảng, IBM −13,15%, Shopify khai tử Stocky.
+- **Trung bình (self-reported/ước lượng):** user/earnings từng nền tảng, iPaaS CAGR, phân phối MRR.
+- **Thấp / chưa verify:** "integration = 2× stickiness", "Salesforce $6,2 tỷ partner" (đã loại),
+  "Odoo 20 agentic 9/2026". → Tự kiểm chứng trực tiếp trên apps.odoo.com & odoo.com trước khi đầu tư.
+
+**Sources chính:**
+[Shopify rev-share](https://shopify.dev/docs/apps/launch/distribution/revenue-share) ·
+[Atlassian rev-share 2026](https://www.atlassian.com/blog/developer/updates-to-marketplace-revenue-share-2026) ·
+[Salesforce security review $999](https://www.concret.io/blog/appexchange-security-review-cost-faqs) ·
+[Microsoft 3% fee](https://learn.microsoft.com/en-us/partner-center/marketplace-offers/marketplace-commercial-transaction-capabilities-and-considerations) ·
+[Odoo IAP/commission](https://www.odoo.com/documentation/19.0/applications/essentials/in_app_purchase.html) ·
+[Odoo licenses](https://www.odoo.com/documentation/19.0/legal/licenses.html) ·
+[Odoo AI agents doc](https://www.odoo.com/documentation/19.0/applications/productivity/ai/agents.html) ·
+[RevenueCat State of Subscription Apps 2026](https://www.revenuecat.com/state-of-subscription-apps/) ·
+[AI apps churn 30% faster](https://ppc.land/ai-apps-earn-41-more-per-user-but-churn-30-faster-revenuecat-finds/) ·
+[IBM −13% (Trefis)](https://www.trefis.com/stock/ibm/articles/591342/ibm-stock-crash-overreaction-or-a-real-threat/2026-02-24) ·
+[Shopify sunsetting Stocky](https://blog.ordoro.com/2026/02/25/shopify-sunsetting-stocky-2026/)

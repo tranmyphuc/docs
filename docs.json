@@ -35,6 +35,24 @@
         ]
       },
       {
+        "tab": "Odoo AI Agent",
+        "groups": [
+          {
+            "group": "Kiến trúc AI Agent Odoo",
+            "pages": [
+              "odoo-ai-agent/overview",
+              "odoo-ai-agent/github-cicd",
+              "odoo-ai-agent/mcp-server",
+              "odoo-ai-agent/docker-networking",
+              "odoo-ai-agent/claude-md",
+              "odoo-ai-agent/auto-debugging",
+              "odoo-ai-agent/connector-blueprint",
+              "odoo-ai-agent/market-strategy"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "API Reference",
         "groups": [
           {
