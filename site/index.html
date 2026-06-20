@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UI/UX Pro Max — AI Design Intelligence for Developers</title>
+  <meta name="description" content="AI-powered design intelligence with 67 UI styles, 161 color palettes, 57 font pairings, 99 UX guidelines, and 25 chart types across 15+ tech stacks. A skill for Claude Code, Cursor, Windsurf, Copilot and more." />
+  <meta name="color-scheme" content="dark" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="UI/UX Pro Max — AI Design Intelligence" />
+  <meta property="og:description" content="67 UI styles · 161 color palettes · 57 font pairings · 99 UX guidelines · 25 chart types · 15+ tech stacks." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://uupm.cc" />
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230F172A'/%3E%3Cpath d='M9 21V11h2.6l4.4 6.4L20.4 11H23v10h-2.4v-6.2L16.4 21h-.8l-3.2-6.2V21z' fill='%2322C55E'/%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ---------- Design tokens (UI/UX Pro Max — Dark Mode OLED) ---------- */
+    :root {
+      --color-primary: #1E293B;
+      --color-secondary: #334155;
+      --color-accent: #22C55E;
+      --color-accent-hover: #16A34A;
+      --color-bg: #0F172A;
+      --color-bg-elev: #131c31;
+      --color-fg: #F8FAFC;
+      --color-muted: #94A3B8;
+      --color-muted-2: #64748B;
+      --color-border: #1f2a40;
+      --color-border-strong: #2c3a55;
+
+      --radius-sm: 8px;
+      --radius: 14px;
+      --radius-lg: 22px;
+
+      --maxw: 1140px;
+      --ease: cubic-bezier(.4, 0, .2, 1);
+      --shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 10px 30px -12px rgba(0,0,0,.6);
+      --glow: 0 0 0 1px rgba(34,197,94,.35), 0 8px 30px -8px rgba(34,197,94,.45);
+    }
+
+    /* ---------- Reset & base ---------- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--color-bg);
+      color: var(--color-fg);
+      line-height: 1.6;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    h1, h2, h3 { line-height: 1.15; letter-spacing: -0.02em; margin: 0; font-weight: 700; }
+    p { margin: 0; }
+    a { color: inherit; text-decoration: none; }
+    img, svg { display: block; max-width: 100%; }
+    ::selection { background: rgba(34,197,94,.3); color: #fff; }
+
+    :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; border-radius: 4px; }
+
+    .container { width: 100%; max-width: var(--maxw); margin-inline: auto; padding-inline: 24px; }
+
+    /* ---------- Buttons ---------- */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-weight: 600; font-size: 15px;
+      padding: 12px 22px; border-radius: var(--radius-sm);
+      cursor: pointer; border: 1px solid transparent;
+      transition: background .2s var(--ease), transform .15s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease);
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--color-accent); color: #04210f; box-shadow: var(--glow); }
+    .btn-primary:hover { background: var(--color-accent-hover); transform: translateY(-2px); }
+    .btn-ghost { background: rgba(255,255,255,.03); color: var(--color-fg); border-color: var(--color-border-strong); }
+    .btn-ghost:hover { background: rgba(255,255,255,.07); transform: translateY(-2px); border-color: var(--color-muted-2); }
+    .btn-sm { padding: 9px 16px; font-size: 14px; }
+
+    /* ---------- Header ---------- */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(12px);
+      background: rgba(15,23,42,.72);
+      border-bottom: 1px solid transparent;
+      transition: border-color .3s var(--ease), background .3s var(--ease);
+    }
+    header.scrolled { border-bottom-color: var(--color-border); }
+    .nav { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+    .brand .logo { width: 30px; height: 30px; border-radius: 8px; }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a.link { color: var(--color-muted); font-size: 15px; font-weight: 500; transition: color .2s var(--ease); }
+    .nav-links a.link:hover { color: var(--color-fg); }
+    .nav-cta { display: flex; align-items: center; gap: 12px; }
+    .menu-toggle { display: none; background: none; border: 0; color: var(--color-fg); cursor: pointer; padding: 8px; }
+
+    /* ---------- Hero ---------- */
+    .hero { position: relative; padding: 96px 0 80px; text-align: center; overflow: hidden; }
+    .hero-glow {
+      position: absolute; inset: -20% 0 auto 0; height: 700px; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(540px 320px at 50% 0%, rgba(34,197,94,.18), transparent 70%),
+        radial-gradient(700px 380px at 80% 10%, rgba(56,189,248,.10), transparent 70%),
+        radial-gradient(620px 340px at 18% 8%, rgba(139,92,246,.10), transparent 70%);
+    }
+    .hero-grid {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .4;
+      background-image:
+        linear-gradient(to right, rgba(148,163,184,.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148,163,184,.06) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, #000 40%, transparent 80%);
+    }
+    .hero .container { position: relative; z-index: 1; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 999px;
+      background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.25);
+      color: #86efac; font-size: 13.5px; font-weight: 500; margin-bottom: 28px;
+    }
+    .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent); box-shadow: 0 0 8px var(--color-accent); }
+    .hero h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); font-weight: 800; max-width: 16ch; margin-inline: auto; }
+    .hero h1 .grad {
+      background: linear-gradient(120deg, #4ade80, #22c55e 40%, #38bdf8);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero .sub { margin: 26px auto 0; max-width: 60ch; font-size: clamp(1.05rem, 2.2vw, 1.25rem); color: var(--color-muted); }
+    .hero-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 38px; }
+    .hero-note { margin-top: 18px; font-size: 13.5px; color: var(--color-muted-2); }
+
+    /* ---------- Terminal ---------- */
+    .terminal {
+      margin: 56px auto 0; max-width: 720px; text-align: left;
+      background: linear-gradient(180deg, #0c1322, #0a0f1c);
+      border: 1px solid var(--color-border-strong);
+      border-radius: var(--radius); overflow: hidden;
+      box-shadow: 0 30px 80px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(34,197,94,.06);
+    }
+    .terminal-bar { display: flex; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid var(--color-border); background: rgba(255,255,255,.015); }
+    .terminal-bar .tdot { width: 11px; height: 11px; border-radius: 50%; }
+    .tdot.r { background: #ff5f57; } .tdot.y { background: #febc2e; } .tdot.g { background: #28c840; }
+    .terminal-bar .tname { margin-left: 10px; font-size: 12.5px; color: var(--color-muted-2); font-family: 'JetBrains Mono', monospace; }
+    .terminal-body { padding: 22px 22px 26px; font-family: 'JetBrains Mono', monospace; font-size: 13.5px; line-height: 1.85; }
+    .terminal-body .ln { white-space: pre-wrap; word-break: break-word; }
+    .t-prompt { color: var(--color-accent); }
+    .t-cmd { color: var(--color-fg); }
+    .t-flag { color: #7dd3fc; }
+    .t-comment { color: var(--color-muted-2); }
+    .t-out { color: var(--color-muted); }
+    .t-key { color: #c4b5fd; }
+
+    /* ---------- Section primitives ---------- */
+    section { position: relative; }
+    .section-pad { padding: 88px 0; }
+    .section-head { text-align: center; max-width: 64ch; margin: 0 auto 56px; }
+    .eyebrow { color: var(--color-accent); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 14px; }
+    .section-head h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+    .section-head p { margin-top: 16px; color: var(--color-muted); font-size: 1.08rem; }
+
+    /* ---------- Stats strip ---------- */
+    .stats { border-block: 1px solid var(--color-border); background: rgba(255,255,255,.012); }
+    .stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; padding: 36px 0; }
+    .stat { text-align: center; padding: 8px; }
+    .stat .num { font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 800; letter-spacing: -0.03em; color: var(--color-fg); }
+    .stat .num span { color: var(--color-accent); }
+    .stat .label { margin-top: 4px; font-size: 13px; color: var(--color-muted); }
+
+    /* ---------- Feature cards ---------- */
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.008));
+      border: 1px solid var(--color-border); border-radius: var(--radius);
+      padding: 28px; transition: transform .25s var(--ease), border-color .25s var(--ease), box-shadow .25s var(--ease);
+    }
+    .card:hover { transform: translateY(-4px); border-color: var(--color-border-strong); box-shadow: var(--shadow); }
+    .card .icon {
+      width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center;
+      background: rgba(34,197,94,.1); color: var(--color-accent); margin-bottom: 18px;
+      border: 1px solid rgba(34,197,94,.18);
+    }
+    .card .icon svg { width: 23px; height: 23px; }
+    .card h3 { font-size: 1.18rem; }
+    .card p { margin-top: 9px; color: var(--color-muted); font-size: 14.5px; }
+
+    /* ---------- How it works ---------- */
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; counter-reset: step; }
+    .step { position: relative; padding: 28px; border: 1px solid var(--color-border); border-radius: var(--radius); background: rgba(255,255,255,.012); }
+    .step::before {
+      counter-increment: step; content: counter(step, decimal-leading-zero);
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600;
+      color: var(--color-accent); display: inline-block; margin-bottom: 14px;
+      padding: 4px 10px; border: 1px solid rgba(34,197,94,.25); border-radius: 999px; background: rgba(34,197,94,.07);
+    }
+    .step h3 { font-size: 1.12rem; }
+    .step p { margin-top: 8px; color: var(--color-muted); font-size: 14.5px; }
+
+    /* ---------- Stacks ---------- */
+    .stacks { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 880px; margin-inline: auto; }
+    .chip {
+      padding: 9px 18px; border-radius: 999px; font-size: 14px; font-weight: 500;
+      background: rgba(255,255,255,.03); border: 1px solid var(--color-border);
+      color: var(--color-muted); transition: color .2s var(--ease), border-color .2s var(--ease), background .2s var(--ease);
+    }
+    .chip:hover { color: var(--color-fg); border-color: var(--color-accent); background: rgba(34,197,94,.06); }
+
+    /* ---------- Platforms ---------- */
+    .platforms { display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: center; color: var(--color-muted-2); font-weight: 600; font-size: 15px; }
+    .platforms span { transition: color .2s var(--ease); }
+    .platforms span:hover { color: var(--color-fg); }
+
+    /* ---------- CTA ---------- */
+    .cta-wrap {
+      position: relative; text-align: center; border: 1px solid var(--color-border-strong);
+      border-radius: var(--radius-lg); padding: 64px 28px; overflow: hidden;
+      background: linear-gradient(180deg, rgba(34,197,94,.06), rgba(255,255,255,.01));
+    }
+    .cta-wrap::before {
+      content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background: radial-gradient(500px 240px at 50% 0%, rgba(34,197,94,.2), transparent 70%);
+    }
+    .cta-wrap > * { position: relative; z-index: 1; }
+    .cta-wrap h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); max-width: 20ch; margin-inline: auto; }
+    .cta-wrap p { margin: 16px auto 0; color: var(--color-muted); max-width: 52ch; }
+
+    /* ---------- Footer ---------- */
+    footer { border-top: 1px solid var(--color-border); padding: 44px 0; margin-top: 12px; }
+    .foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; }
+    .foot .brand { font-size: 15px; }
+    .foot-links { display: flex; gap: 26px; flex-wrap: wrap; }
+    .foot-links a { color: var(--color-muted); font-size: 14px; transition: color .2s var(--ease); }
+    .foot-links a:hover { color: var(--color-fg); }
+    .foot .copy { color: var(--color-muted-2); font-size: 13px; width: 100%; }
+
+    /* ---------- Reveal animation ---------- */
+    .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+    .reveal.in { opacity: 1; transform: none; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 940px) {
+      .cards, .steps { grid-template-columns: repeat(2, 1fr); }
+      .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 24px 8px; }
+    }
+    @media (max-width: 720px) {
+      .nav-links { display: none; }
+      .menu-toggle { display: inline-flex; }
+      .nav-links.open {
+        display: flex; flex-direction: column; align-items: flex-start; gap: 18px;
+        position: absolute; top: 68px; left: 0; right: 0; padding: 22px 24px 26px;
+        background: rgba(15,23,42,.98); border-bottom: 1px solid var(--color-border);
+      }
+      .nav-links.open .nav-cta { width: 100%; }
+      .nav-links.open .nav-cta .btn { width: 100%; justify-content: center; }
+      .section-pad { padding: 64px 0; }
+    }
+    @media (max-width: 540px) {
+      .cards, .steps { grid-template-columns: 1fr; }
+      .hero { padding: 64px 0 56px; }
+      .hero-cta .btn { width: 100%; justify-content: center; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- ============ HEADER ============ -->
+  <header id="header">
+    <div class="container nav">
+      <a class="brand" href="#top" aria-label="UI/UX Pro Max home">
+        <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#22C55E"/><path d="M9 21V11h2.6l4.4 6.4L20.4 11H23v10h-2.4v-6.2L16.4 21h-.8l-3.2-6.2V21z" fill="#04210f"/></svg>
+        UI/UX Pro Max
+      </a>
+      <nav class="nav-links" id="navLinks" aria-label="Primary">
+        <a class="link" href="#features">Features</a>
+        <a class="link" href="#how">How it works</a>
+        <a class="link" href="#stacks">Stacks</a>
+        <a class="link" href="#platforms">Platforms</a>
+        <div class="nav-cta">
+          <a class="btn btn-ghost btn-sm" href="https://github.com/nextlevelbuilder/ui-ux-pro-max-skill" target="_blank" rel="noopener">GitHub</a>
+          <a class="btn btn-primary btn-sm" href="#get-started">Install</a>
+        </div>
+      </nav>
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="container">
+        <span class="badge"><span class="dot"></span> AI design intelligence · v2.5</span>
+        <h1>Ship <span class="grad">professional UI</span> that your AI actually knows how to design</h1>
+        <p class="sub">A design-intelligence skill that gives Claude Code, Cursor, Windsurf &amp; Copilot a searchable brain of curated styles, palettes, type pairings, and UX rules — so generated interfaces look designed, not guessed.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#get-started">
+            Install the skill
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/nextlevelbuilder/ui-ux-pro-max-skill" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.84 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.73-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.9 1.57 2.34 1.12 2.91.86.09-.66.35-1.12.63-1.38-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05a9.36 9.36 0 0 1 5 0c1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z"/></svg>
+            Star on GitHub
+          </a>
+        </div>
+        <p class="hero-note">Free &amp; open source · MIT licensed · Works in 18+ AI coding tools</p>
+
+        <!-- Terminal -->
+        <div class="terminal reveal" role="img" aria-label="Terminal showing the install and search commands">
+          <div class="terminal-bar">
+            <span class="tdot r"></span><span class="tdot y"></span><span class="tdot g"></span>
+            <span class="tname">~/my-app — uipro</span>
+          </div>
+          <div class="terminal-body">
+<span class="ln"><span class="t-comment"># 1. Add the skill to your AI coding tool</span></span>
+<span class="ln"><span class="t-prompt">$</span> <span class="t-cmd">npx uipro-cli init</span> <span class="t-flag">--ai</span> <span class="t-cmd">claude</span></span>
+<span class="ln"><span class="t-out">✓ UI/UX Pro Max installed → .claude/skills/ui-ux-pro-max</span></span>
+<span class="ln">&nbsp;</span>
+<span class="ln"><span class="t-comment"># 2. Ask for a design system — get reasoned recommendations</span></span>
+<span class="ln"><span class="t-prompt">$</span> <span class="t-cmd">search</span> <span class="t-out">"fintech dashboard dark"</span> <span class="t-flag">--design-system</span></span>
+<span class="ln"><span class="t-key">style</span><span class="t-out">    → Dark Mode (OLED) · WCAG AAA</span></span>
+<span class="ln"><span class="t-key">colors</span><span class="t-out">   → #0F172A · #22C55E · #38BDF8</span></span>
+<span class="ln"><span class="t-key">type</span><span class="t-out">     → Inter / Inter · tabular figures</span></span>
+<span class="ln"><span class="t-key">layout</span><span class="t-out">   → Hero-centric · single primary CTA</span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STATS ============ -->
+    <section class="stats" aria-label="What's inside">
+      <div class="container">
+        <div class="stats-grid">
+          <div class="stat reveal"><div class="num"><span>67</span></div><div class="label">UI styles</div></div>
+          <div class="stat reveal"><div class="num"><span>161</span></div><div class="label">Color palettes</div></div>
+          <div class="stat reveal"><div class="num"><span>57</span></div><div class="label">Font pairings</div></div>
+          <div class="stat reveal"><div class="num"><span>99</span></div><div class="label">UX guidelines</div></div>
+          <div class="stat reveal"><div class="num"><span>25</span></div><div class="label">Chart types</div></div>
+          <div class="stat reveal"><div class="num"><span>15+</span></div><div class="label">Tech stacks</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FEATURES ============ -->
+    <section class="section-pad" id="features">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="eyebrow">A curated knowledge base</div>
+          <h2>Everything your AI needs to make real design decisions</h2>
+          <p>Not vibes — a searchable database with priority-based recommendations, reasoning rules, and anti-patterns drawn from Apple HIG, Material Design and WCAG.</p>
+        </div>
+        <div class="cards">
+          <article class="card reveal">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2a10 10 0 0 0 0 20c1.7 0 1.5-1.5 1-2.5-.7-1.4.5-2.5 2-2.5h1a6 6 0 0 0 6-6c0-5.5-4.5-9-10-9z"/></svg></div>
+            <h3>67 UI styles</h3>
+            <p>Glassmorphism, claymorphism, brutalism, neumorphism, bento grids, dark mode and more — each with AI prompts and CSS keywords.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></div>
+            <h3>161 color palettes</h3>
+            <p>Accessible, product-matched palettes with semantic tokens and verified contrast pairs — chosen by industry and tone, not by chance.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5h16v2M9 20h6M12 5v15"/></svg></div>
+            <h3>57 font pairings</h3>
+            <p>Heading + body combinations with matched personalities, ready-to-paste Google Fonts imports, and a sensible type scale.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+            <h3>99 UX guidelines</h3>
+            <p>Accessibility, touch targets, performance, motion and forms — with the anti-patterns to avoid, sorted by impact priority.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l3-4 3 2 4-6"/></svg></div>
+            <h3>25 chart types</h3>
+            <p>The right visualization for your data, with library recommendations and accessible, colorblind-safe defaults.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 6 2 12 8 18"/><polyline points="16 6 22 12 16 18"/></svg></div>
+            <h3>15+ tech stacks</h3>
+            <p>Stack-specific guidance for React, Next.js, Vue, Svelte, SwiftUI, Flutter, Tailwind, shadcn/ui and more.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="section-pad" id="how" style="background:rgba(255,255,255,.01); border-block:1px solid var(--color-border);">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="eyebrow">How it works</div>
+          <h2>From prompt to polished UI in three steps</h2>
+        </div>
+        <div class="steps">
+          <div class="step reveal">
+            <h3>Install once</h3>
+            <p>Run <code style="color:#7dd3fc;font-family:'JetBrains Mono',monospace;font-size:13px">npx uipro-cli init</code> or drop the skill into <code style="color:#7dd3fc;font-family:'JetBrains Mono',monospace;font-size:13px">.claude/skills</code>. Your assistant auto-detects it.</p>
+          </div>
+          <div class="step reveal">
+            <h3>Ask naturally</h3>
+            <p>"Build a SaaS dashboard" or "what palette fits a wellness app?" The skill activates automatically for any UI/UX task.</p>
+          </div>
+          <div class="step reveal">
+            <h3>Get reasoned output</h3>
+            <p>A BM25 search engine returns a full design system — pattern, style, colors, type and effects — with the anti-patterns to avoid.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STACKS ============ -->
+    <section class="section-pad" id="stacks">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="eyebrow">Stack-aware</div>
+          <h2>Implementation guidance for your framework</h2>
+          <p>Recommendations come with code-level best practices tailored to the stack you actually ship in.</p>
+        </div>
+        <div class="stacks reveal">
+          <span class="chip">React</span><span class="chip">Next.js</span><span class="chip">Vue</span>
+          <span class="chip">Nuxt</span><span class="chip">Svelte</span><span class="chip">Astro</span>
+          <span class="chip">Angular</span><span class="chip">SwiftUI</span><span class="chip">React Native</span>
+          <span class="chip">Flutter</span><span class="chip">Jetpack Compose</span><span class="chip">Tailwind CSS</span>
+          <span class="chip">shadcn/ui</span><span class="chip">Laravel</span><span class="chip">Three.js</span>
+          <span class="chip">HTML / CSS</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PLATFORMS ============ -->
+    <section class="section-pad" id="platforms" style="background:rgba(255,255,255,.01); border-block:1px solid var(--color-border);">
+      <div class="container">
+        <div class="section-head reveal">
+          <div class="eyebrow">Works everywhere you code</div>
+          <h2>One skill, 18+ AI assistants</h2>
+        </div>
+        <div class="platforms reveal">
+          <span>Claude Code</span><span>Cursor</span><span>Windsurf</span><span>GitHub Copilot</span>
+          <span>Codex</span><span>Gemini</span><span>Kiro</span><span>Roo Code</span>
+          <span>Kilo Code</span><span>Continue</span><span>Trae</span><span>Qoder</span>
+          <span>OpenCode</span><span>Droid</span><span>Warp</span><span>Augment</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CTA ============ -->
+    <section class="section-pad" id="get-started">
+      <div class="container">
+        <div class="cta-wrap reveal">
+          <div class="eyebrow">Get started</div>
+          <h2>Give your AI a sense of design</h2>
+          <p>Install in seconds. Free, open source, and MIT licensed — no account required.</p>
+          <div class="terminal" style="margin:30px auto 26px; max-width:560px;">
+            <div class="terminal-bar">
+              <span class="tdot r"></span><span class="tdot y"></span><span class="tdot g"></span>
+              <span class="tname">install</span>
+            </div>
+            <div class="terminal-body" style="padding:18px 22px;">
+<span class="ln"><span class="t-prompt">$</span> <span class="t-cmd">npx uipro-cli init</span> <span class="t-flag">--ai</span> <span class="t-cmd">claude</span></span>
+            </div>
+          </div>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="https://github.com/nextlevelbuilder/ui-ux-pro-max-skill" target="_blank" rel="noopener">Get it on GitHub</a>
+            <a class="btn btn-ghost" href="https://uupm.cc" target="_blank" rel="noopener">Read the docs</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <div class="container foot">
+      <a class="brand" href="#top">
+        <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#22C55E"/><path d="M9 21V11h2.6l4.4 6.4L20.4 11H23v10h-2.4v-6.2L16.4 21h-.8l-3.2-6.2V21z" fill="#04210f"/></svg>
+        UI/UX Pro Max
+      </a>
+      <nav class="foot-links" aria-label="Footer">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="https://github.com/nextlevelbuilder/ui-ux-pro-max-skill" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://uupm.cc" target="_blank" rel="noopener">Docs</a>
+      </nav>
+      <p class="copy">© <span id="year"></span> NextLevelBuilder · UI/UX Pro Max · MIT License. Built with the UI/UX Pro Max skill.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Header shadow on scroll
+    const header = document.getElementById('header');
+    const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Mobile menu
+    const toggle = document.getElementById('menuToggle');
+    const links = document.getElementById('navLinks');
+    toggle.addEventListener('click', () => {
+      const open = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+    links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }));
+
+    // Scroll reveal
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!prefersReduced && 'IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e, i) => {
+          if (e.isIntersecting) {
+            e.target.style.transitionDelay = Math.min(i * 40, 160) + 'ms';
+            e.target.classList.add('in');
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+      document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+    } else {
+      document.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+    }
+
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
