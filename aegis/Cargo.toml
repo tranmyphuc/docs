@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = ["core/kernel", "core/sandbox", "cli/aegis"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/tranmyphuc/aegis"
+description = "Autonomous control plane where security and cost finally agree."
+
+[profile.release]
+lto = true
+codegen-units = 1

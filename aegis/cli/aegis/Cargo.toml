@@ -1,0 +1,15 @@
+[package]
+name = "aegis-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "AEGIS command-line control plane."
+
+[[bin]]
+name = "aegis"
+path = "src/main.rs"
+
+[dependencies]
+aegis-kernel = { path = "../../core/kernel" }
+# std-only arg handling in v0.1 to guarantee an offline build; clap lands when
+# the crate registry is reachable in CI.

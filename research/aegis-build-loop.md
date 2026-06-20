@@ -13,16 +13,16 @@
 ---
 
 ## L0 — Genesis & Identity  *(makes the repo look alive)*
-- [ ] **L0.1** `README.md` hero: one-line pitch, problem, the `aegis simulate` teaser, badges placeholder. **Verify:** `grep -q "security and cost finally agree" README.md`
-- [ ] **L0.2** `LICENSE` = Apache-2.0; `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`. **Verify:** `test -f LICENSE && test -f SECURITY.md`
+- [x] **L0.1** `README.md` hero: one-line pitch, problem, the `aegis simulate` teaser, badges placeholder. **Verify:** `grep -q "security and cost finally agree" README.md`
+- [x] **L0.2** `LICENSE` = Apache-2.0; `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`. **Verify:** `test -f LICENSE && test -f SECURITY.md`
 - [ ] **L0.3** Repo metadata: topics (`ai-agents`, `finops`, `compliance`, `iso27001`, `rust`), About blurb, social-preview note. **Verify:** manual checklist in `LAUNCH.md`
-- [ ] **L0.4** `.github/` issue + PR templates, `good first issue` label set, `CHANGELOG.md`. **Verify:** `test -d .github/ISSUE_TEMPLATE`
+- [x] **L0.4** `.github/` issue + PR templates, `good first issue` label set, `CHANGELOG.md`. **Verify:** `test -d .github/ISSUE_TEMPLATE`
 
 ## L1 — Core Scaffold  *(it compiles & runs)*
-- [ ] **L1.1** Cargo workspace: `core/kernel`, `core/sandbox`, `cli/aegis`, `bindings/py`. **Verify:** `cargo build --workspace`
-- [ ] **L1.2** `aegis` CLI with `clap`: `scan`, `simulate`, `arbitrate`, `evidence` (stubs). **Verify:** `cargo run -p aegis -- --help`
-- [ ] **L1.3** `docker-compose.yml` (nats, postgres+pgvector, qdrant, temporal) + `make up`. **Verify:** `docker compose config -q`
-- [ ] **L1.4** `Makefile` targets: `build`, `test`, `demo`, `up`, `down`. **Verify:** `make -n demo`
+- [x] **L1.1** Cargo workspace: `core/kernel`, `core/sandbox`, `cli/aegis`, `bindings/py`. **Verify:** `cargo build --workspace`
+- [x] **L1.2** `aegis` CLI with `clap`: `scan`, `simulate`, `arbitrate`, `evidence` (stubs). **Verify:** `cargo run -p aegis -- --help`
+- [x] **L1.3** `docker-compose.yml` (nats, postgres+pgvector, qdrant, temporal) + `make up`. **Verify:** `docker compose config -q`
+- [x] **L1.4** `Makefile` targets: `build`, `test`, `demo`, `up`, `down`. **Verify:** `make -n demo`
 
 ## L2 — Connectors (offline fixtures)  *(real data shape, no creds)*
 - [ ] **L2.1** M365 idle-license connector: parse a fixture `getOffice365ActiveUserDetail` CSV → idle E5 list (`lastSignInDateTime` + `lastNonInteractiveSignInDateTime`). **Verify:** unit test asserts N idle seats from fixture.
@@ -34,8 +34,8 @@
 - [ ] **L3.2** FinOps Agent → emits **proposals** (action, $ delta, affected resource) from L2.1 output. **Verify:** test emits a reclaim proposal with $ value.
 
 ## L4 — Arbitration Kernel  *(THE differentiator)*
-- [ ] **L4.1** CMOP model: obligations-as-constraints, cost+coverage objectives; return **Pareto front**. **Verify:** test returns ≥2 non-dominated options.
-- [ ] **L4.2** OPA/Rego veto gate (`policy/arbitrate.rego`): mandatory severity → hard veto. **Verify:** test shows a reclaim vetoed by an audit-retention obligation.
+- [x] **L4.1** CMOP model: obligations-as-constraints, cost+coverage objectives; return **Pareto front**. **Verify:** test returns ≥2 non-dominated options.
+- [x] **L4.2** OPA/Rego veto gate (`policy/arbitrate.rego`): mandatory severity → hard veto. **Verify:** test shows a reclaim vetoed by an audit-retention obligation.
 - [ ] **L4.3** Weighted-scalar fallback flag (de-risks L4.1 slip). **Verify:** `aegis arbitrate --strategy weighted` runs.
 
 ## L5 — Human-in-the-Loop + Durability
@@ -47,7 +47,7 @@
 - [ ] **L6.2** `aegis evidence --control A.8.x` emits a control-mapped bundle. **Verify:** command produces JSON with control id + decision hashes.
 
 ## L7 — KILLER DEMO  *(the thing people screenshot)*
-- [ ] **L7.1** `aegis simulate` end-to-end: idle-200×E5 vs. audit-retention → prints Pareto frontier + the **binding constraint that vetoed reclamation**. **Verify:** `make demo` exits 0 and prints the veto rationale.
+- [x] **L7.1** `aegis simulate` end-to-end: idle-200×E5 vs. audit-retention → prints Pareto frontier + the **binding constraint that vetoed reclamation**. **Verify:** `make demo` exits 0 and prints the veto rationale.
 - [ ] **L7.2** Record `asciinema`/GIF of the demo → embed in README hero. **Verify:** `test -f docs/demo.gif` (or `.cast`).
 
 ## L8 — Tests & Green CI  *(trust signals)*
@@ -56,11 +56,11 @@
 
 ## L9 — Docs  *(reuse the Mintlify repo)*
 - [ ] **L9.1** Quickstart page (5-min path), architecture page (diagram), concepts (arbitration). **Verify:** `docs.json` nav updated, builds.
-- [ ] **L9.2** `examples/` dir: the idle-E5 scenario + a second (S3 public-bucket vs. cost). **Verify:** each example README runs.
+- [x] **L9.2** `examples/` dir: the idle-E5 scenario + a second (S3 public-bucket vs. cost). **Verify:** each example README runs.
 
 ## L10 — Launch Kit  *(coordinated, timed)*
-- [ ] **L10.1** `LAUNCH.md`: Show HN title+body, r/devops + r/rust posts, X/LinkedIn thread, dev.to article draft. **Verify:** file complete, links checked.
-- [ ] **L10.2** Timing plan (Tue–Thu, ~13:00 UTC), pre-seeded FAQ, comparison table vs. Cloud Custodian/Prowler/Vanta. **Verify:** checklist in LAUNCH.md.
+- [x] **L10.1** `LAUNCH.md`: Show HN title+body, r/devops + r/rust posts, X/LinkedIn thread, dev.to article draft. **Verify:** file complete, links checked.
+- [x] **L10.2** Timing plan (Tue–Thu, ~13:00 UTC), pre-seeded FAQ, comparison table vs. Cloud Custodian/Prowler/Vanta. **Verify:** checklist in LAUNCH.md.
 
 ## L11 — Community Polish  *(sustain the spike)*
 - [ ] **L11.1** Seed 8–12 `good first issue`s mapped to `v0.2` (Azure/GCP, STIX feeds, A2A). **Verify:** issues created with labels.
@@ -69,4 +69,6 @@
 ---
 
 ### Progress
-`0 / 28` tasks complete. Update this line each iteration.
+`13 / 28` tasks complete (foundational drop: L0, L1, kernel arbitration L4.1/L4.2, simulate demo L7.1, example L9.2, launch kit L10). Remaining: live connectors (L2), agent wiring (L3), HITL+Temporal (L5), evidence bundles (L6), demo GIF (L7.2), CI badges (L8), docs site (L9.1), community polish (L11).
+
+> **Build location note:** built under `aegis/` in `tranmyphuc/docs` because this session is scoped to that repo and a standalone `tranmyphuc/aegis` could not be created (403). Migrate the `aegis/` tree to the standalone private repo before launch (see `aegis/LAUNCH.md`).
