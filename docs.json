@@ -35,6 +35,24 @@
         ]
       },
       {
+        "tab": "AEGIS",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "aegis-platform/quickstart"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "aegis-platform/architecture",
+              "aegis-platform/concepts/arbitration"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "API Reference",
         "groups": [
           {
