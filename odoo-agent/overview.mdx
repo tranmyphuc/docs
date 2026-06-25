@@ -1,0 +1,57 @@
+---
+title: 'Overview'
+description: 'Turn Claude into an autonomous Odoo developer — ticket in, tested PR out'
+---
+
+The **Odoo Auto-Dev Agent** is a drop-in starter kit that turns
+[Claude](https://claude.com/claude-code) (Claude Code on web/desktop/CLI, or the
+Claude Agent SDK) into an **autonomous Odoo developer**. A ticket goes in;
+working, tested, reviewed Odoo code comes out as a pull request.
+
+It is **version-aware** for Odoo **16 / 17 / 18**, with first-class support for
+porting modules between versions.
+
+<CardGroup cols={2}>
+  <Card title="The pipeline" icon="diagram-project" href="/odoo-agent/pipeline">
+    The six autonomous stages from ticket to merged PR.
+  </Card>
+  <Card title="Skills & review" icon="wand-magic-sparkles" href="/odoo-agent/skills">
+    Scaffold, add-feature, version-port, and the reviewer subagent.
+  </Card>
+  <Card title="Setup" icon="rocket" href="/odoo-agent/setup">
+    Run the verify stack and point Claude at your repo.
+  </Card>
+  <Card title="Clone to teams" icon="copy" href="/odoo-agent/cloning">
+    Replicate to other accounts without sharing secrets.
+  </Card>
+</CardGroup>
+
+## Why Claude as the core
+
+Odoo work is hands-on code — manifests, ORM models, XML view inheritance,
+`ir.model.access.csv`, version porting, and running `odoo-bin --test-enable`.
+That maps to a **coding agent**, not a research agent. Claude Code's remote
+execution + GitHub integration + PR-babysitting loop make the "full auto"
+pipeline native rather than theoretical.
+
+<Note>
+  DeerFlow (a LangGraph research/orchestration platform) is an excellent
+  **front-end** for this kit — a shared team UI for intake and planning that
+  delegates the actual coding to Claude via ACP. See
+  [Clone to teams](/odoo-agent/cloning#deerflow-front-end).
+</Note>
+
+## What's in the kit
+
+| Area | Files |
+|------|-------|
+| Agent brain | `CLAUDE.md`, `AGENTS.md` (cross-agent: Codex / OpenCode / Cursor) |
+| Skills | `odoo-scaffold-module`, `odoo-add-feature`, `odoo-version-port` |
+| Review | `.claude/agents/odoo-reviewer.md` |
+| Verify | `docker-compose.yml`, `Makefile`, `.github/workflows/odoo-ci.yml`, `.pre-commit-config.yaml` |
+| Config | `.mcp.json`, `.claude/settings.json`, `.env.example` |
+
+<Info>
+  The kit carries **behavior** (skills, standards, CI) — never secrets. Every
+  team supplies its own API keys via a gitignored `.env`.
+</Info>

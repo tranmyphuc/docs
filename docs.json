@@ -35,6 +35,21 @@
         ]
       },
       {
+        "tab": "Odoo Agent",
+        "groups": [
+          {
+            "group": "Odoo Auto-Dev Agent",
+            "pages": [
+              "odoo-agent/overview",
+              "odoo-agent/pipeline",
+              "odoo-agent/skills",
+              "odoo-agent/setup",
+              "odoo-agent/cloning"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "API Reference",
         "groups": [
           {

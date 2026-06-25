@@ -1,0 +1,70 @@
+---
+title: 'Clone to other accounts & teams'
+description: 'Replicate the agent across teams without sharing secrets'
+---
+
+The kit is the **portable config**; each team supplies its **own credentials**.
+Pick the distribution model that fits your scale.
+
+## Option A — Git repo (simplest)
+
+<Steps>
+  <Step title="Publish">
+    Push the kit to your Git host as a template repo.
+  </Step>
+  <Step title="Clone per team">
+    Each team runs `git clone`, then `cp .env.example .env`.
+  </Step>
+  <Step title="Bring your own credentials">
+    They fill in **their own** `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) and
+    Odoo/DB settings, and connect **their own** Claude account plus Claude
+    Code's GitHub integration to **their** Odoo addons repos.
+  </Step>
+</Steps>
+
+## Option B — Claude Code plugin (best for many teams)
+
+Package `.claude/skills`, `.claude/agents`, and `.mcp.json` as a Claude Code
+plugin and publish it to a marketplace. Teams install in one command and get
+updates automatically; each user authenticates with their own account.
+
+## Option C — Packaged product (multi-tenant)
+
+Wrap the pipeline in the **Claude Agent SDK**, containerize it, and pass each
+tenant's API key via an environment variable. One deployment serves many orgs.
+
+<Warning>
+  **Never share keys across accounts.** The kit carries behavior — skills,
+  standards, CI — not secrets. `.env` is gitignored by design.
+</Warning>
+
+## Comparison with other coding agents
+
+The same kit bootstraps and drives from any agent; only the
+"use-my-subscription" model differs.
+
+| Capability | Claude Code | OpenAI Codex / OpenCode | Cursor |
+|------------|-------------|-------------------------|--------|
+| Bootstrap from `CLAUDE.md` / `AGENTS.md` | ✅ | ✅ (`AGENTS.md`) | ✅ |
+| Drive the kit's Skills | ✅ native | ✅ (Markdown skills) | ✅ |
+| Use your subscription as the model | ✅ Claude OAuth | ✅ Codex OAuth | ❌ no export |
+| ACP delegation from DeerFlow | ✅ | ✅ | ❌ |
+
+## DeerFlow front-end
+
+To give the team a shared web UI for intake, planning, memory, and research that
+**delegates coding to this kit**, run DeerFlow and register Claude Code as an
+ACP agent:
+
+```yaml
+# config.yaml (DeerFlow)
+acp_agents:
+  claude_code:
+    command: npx
+    args: ["-y", "@zed-industries/claude-agent-acp"]
+    description: Claude Code for Odoo module development
+```
+
+DeerFlow handles threads/memory/research; this kit handles the actual code. The
+Skills here are plain `SKILL.md` files, so they also drop straight into
+DeerFlow's `skills/public/`.

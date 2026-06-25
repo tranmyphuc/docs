@@ -1,0 +1,69 @@
+---
+title: 'Skills & review'
+description: 'The reusable Odoo know-how that powers each stage'
+---
+
+Odoo expertise is encoded as **Skills** — plain `SKILL.md` files under
+`.claude/skills/`. They are readable by Claude Code, the Claude Agent SDK, and
+(because the format is plain Markdown) by DeerFlow and other AGENTS.md-aware
+tools. Encode the knowledge once; reuse it everywhere.
+
+## odoo-scaffold-module
+
+Creates a new, **installable** module with a correct manifest, a model, a
+list/form view, a menu, `ir.model.access.csv`, and a passing test.
+
+<AccordionGroup>
+  <Accordion title="What it guarantees">
+    - Manifest `version` is `<ODOO_VERSION>.0.x.y.z` and a `license` is set.
+    - Every model ships with an `ir.model.access.csv` line.
+    - The view tag matches the target version (`<list>` for 18, `<tree>` for 16/17).
+    - At least one discoverable test (`--test-tags /<module>`).
+  </Accordion>
+</AccordionGroup>
+
+## odoo-add-feature
+
+Adds a field, computed value, model, view change, or access rule to an existing
+module — kept consistent across **model + view + security + tests**. Prefers
+`_inherit` and `<xpath>` over rewriting whole views.
+
+## odoo-version-port
+
+Migrates a module one major version at a time (16 → 17 → 18), running tests
+between hops. It encodes the high-frequency breakers:
+
+| Change | 16 | 17 / 18 |
+|--------|----|---------|
+| Conditional attrs | `attrs="{'invisible': [(...)]}"` | `invisible="..."` (Python expr) |
+| `states` attribute | supported | **removed** |
+| Display name | `name_get()` | `_compute_display_name` |
+| List view tag | `<tree>` | `<list>` (Odoo 18) |
+
+<Warning>
+  Never jump 16 → 18 directly. Port one major version at a time and verify
+  between hops.
+</Warning>
+
+## The reviewer subagent
+
+`.claude/agents/odoo-reviewer.md` runs before every PR and checks the diff for:
+
+<CardGroup cols={2}>
+  <Card title="Security" icon="shield">
+    Access rules per model, no SQL injection in domains/`cr.execute`, justified
+    `sudo()`.
+  </Card>
+  <Card title="ORM correctness" icon="database">
+    Complete `@api.depends`, no writes in computes, batched recordset ops.
+  </Card>
+  <Card title="Views & manifest" icon="table-columns">
+    New fields surfaced in a view, manifest `data` complete, xpath inheritance.
+  </Card>
+  <Card title="Version compliance" icon="code-branch">
+    No leftover `attrs`/`states`, `<list>` for 18, no `name_get` on 17/18.
+  </Card>
+</CardGroup>
+
+It ends with an **APPROVE** / **REQUEST CHANGES** verdict and the single most
+important fix.
