@@ -1,0 +1,82 @@
+---
+title: 'Setup'
+description: 'Run the verify stack and point Claude at your repo'
+---
+
+## Prerequisites
+
+- Docker + Docker Compose (for the local Odoo + Postgres verify stack)
+- A Claude account or `ANTHROPIC_API_KEY`
+- Your Odoo modules live under `addons/`, one directory per module
+
+## 1. Configure
+
+```bash
+git clone <your-fork-of-the-kit> && cd odoo-auto-dev-agent
+cp .env.example .env
+```
+
+Set the essentials in `.env`:
+
+```bash
+ODOO_VERSION=18                 # 16 | 17 | 18
+ANTHROPIC_API_KEY=sk-ant-...    # your own key
+ADDONS_PATH=./addons
+```
+
+<Info>
+  `.env` is gitignored. Each developer / team uses their own credentials — they
+  are never committed.
+</Info>
+
+## 2. Boot the verify stack
+
+```bash
+make up                         # Odoo on http://localhost:8069
+```
+
+## 3. Develop a module
+
+Put or scaffold a module under `addons/`, then:
+
+```bash
+make install MODULE=<name>      # install (-i)
+make upgrade MODULE=<name>      # apply model/view changes (-u)
+make test MODULE=<name>         # run its tests
+make lint                       # ruff + pylint-odoo
+```
+
+## 4. Hand it to Claude
+
+Open the repo in Claude Code and give it a ticket. It reads `CLAUDE.md` and runs
+the [pipeline](/odoo-agent/pipeline) automatically — planning, using the
+[Skills](/odoo-agent/skills), verifying with the `make` targets above,
+self-reviewing, and opening a draft PR.
+
+<AccordionGroup>
+  <Accordion title="MCP servers (live context)" icon="plug">
+    `.mcp.json` wires three servers so the agent can introspect a running
+    instance instead of guessing:
+
+    - **odoo** — model/field/access introspection over JSON-RPC (swap in the
+      Odoo MCP server your team standardizes on).
+    - **postgres** — read-only DB introspection to verify migrations and computes.
+    - **filesystem** — scoped access to the addons path.
+  </Accordion>
+  <Accordion title="Autonomous-loop permissions" icon="lock">
+    `.claude/settings.json` allowlists the common `make` / `docker` / `git`
+    commands so the loop runs without prompting, while denying destructive ones
+    (`rm -rf`, `docker compose down -v`). Tune per team.
+  </Accordion>
+  <Accordion title="CI verify gate" icon="circle-check">
+    `.github/workflows/odoo-ci.yml` discovers changed modules and installs +
+    tests them across an Odoo version matrix. This is the green light the
+    babysit stage drives to passing.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  Two wiring points to confirm against your environment: the Odoo MCP package
+  name in `.mcp.json` is a placeholder, and the CI `--addons-path` may need to
+  match the official Odoo image's actual base-addons path.
+</Note>
